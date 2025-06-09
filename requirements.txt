@@ -1,0 +1,11 @@
+opencv-python
+numpy
+deepface
+moviepy
+SpeechRecognition
+pydub
+tensorflow
+keras
+mtcnn
+tf-keras
+moviepy
