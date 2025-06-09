@@ -6,6 +6,14 @@ import speech_recognition as sr
 import os
 from collections import defaultdict
 import math
+import sys
+import json
+import io
+import contextlib
+
+# Suppress MoviePy output
+import logging
+logging.getLogger('moviepy').setLevel(logging.ERROR)
 
 class HRFeedbackGenerator:
     def __init__(self, video_path):
@@ -222,17 +230,20 @@ class HRFeedbackGenerator:
         }
 
 if __name__ == "__main__":
-    video_path = "./interview3.mp4"  # Replace with your video path
-    analyzer = HRFeedbackGenerator(video_path)
-    feedback = analyzer.generate_feedback()
-
-    print("\nHR Interview Delivery Analysis Report")
-    print("="*50)
-    print(f"Overall Delivery Score: {feedback['overall_score']}/100")
-    print("\nDetailed Metrics:")
-    for metric, value in feedback['detailed_metrics'].items():
-        print(f"- {metric.replace('_', ' ').title()}: {value}")
-
-    print("\nKey Feedback Points:")
-    for comment in feedback['feedback_comments']:
-        print(f"• {comment}")
+    if len(sys.argv) < 2:
+        print(json.dumps({"error": "Please provide a video file path as an argument"}))
+        sys.exit(1)
+    
+    try:
+        # Redirect stdout to capture any unwanted output
+        stdout_capture = io.StringIO()
+        with contextlib.redirect_stdout(stdout_capture):
+            video_path = sys.argv[1]
+            analyzer = HRFeedbackGenerator(video_path)
+            feedback = analyzer.generate_feedback()
+        
+        # Only print the JSON result
+        print(json.dumps(feedback))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+        sys.exit(1)
