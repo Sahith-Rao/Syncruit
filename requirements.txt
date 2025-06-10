@@ -1,11 +1,10 @@
 opencv-python
 numpy
 deepface
-moviepy
+moviepy==1.0.3
 SpeechRecognition
 pydub
-tensorflow
+tensorflow==2.15.0
 keras
 mtcnn
 tf-keras
-moviepy
