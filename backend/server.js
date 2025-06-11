@@ -6,10 +6,23 @@ const { PythonShell } = require('python-shell');
 const mongoose = require('mongoose');
 const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
+const User = require('./models/User');
+const auth = require('./middleware/auth');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log('Connected to MongoDB');
+}).catch((error) => {
+  console.error('MongoDB connection error:', error);
+});
 
 // Middleware
 app.use(cors());
@@ -59,8 +72,57 @@ const convertToMP4 = (inputPath) => {
     });
 };
 
-// Routes
-app.post('/api/analyze', upload.single('video'), async (req, res) => {
+// Authentication Routes
+app.post('/api/register', async (req, res) => {
+    try {
+        const { email, password, name } = req.body;
+        
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ error: 'Email already registered' });
+        }
+
+        // Create new user
+        const user = new User({ email, password, name });
+        await user.save();
+
+        // Generate token
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        
+        res.status(201).json({ user: { id: user._id, email: user.email, name: user.name }, token });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        // Find user
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Check password
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Generate token
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        
+        res.json({ user: { id: user._id, email: user.email, name: user.name }, token });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// Protected Routes
+app.post('/api/analyze', auth, upload.single('video'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No video file uploaded' });
