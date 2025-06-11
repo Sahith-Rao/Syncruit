@@ -8,12 +8,19 @@ router.post('/', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { title, company, description, requirements, questions } = req.body;
 
+    // Transform questions to match schema
+    const transformedQuestions = questions.map(q => ({
+      text: q.question, // Map 'question' field to 'text'
+      category: q.category,
+      timeLimit: q.timeLimit
+    }));
+
     const job = new Job({
       title,
       company,
       description,
       requirements,
-      questions,
+      questions: transformedQuestions,
       createdBy: req.user.adminId
     });
 
@@ -21,7 +28,10 @@ router.post('/', authenticateToken, isAdmin, async (req, res) => {
     res.status(201).json(job);
   } catch (error) {
     console.error('Error creating job:', error);
-    res.status(500).json({ error: 'Error creating job' });
+    res.status(500).json({ 
+      error: 'Error creating job',
+      details: error.message 
+    });
   }
 });
 
@@ -65,6 +75,15 @@ router.put('/:id', authenticateToken, isAdmin, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to update this job' });
     }
 
+    // Transform questions if they exist in the update
+    if (req.body.questions) {
+      req.body.questions = req.body.questions.map(q => ({
+        text: q.question || q.text, // Handle both field names
+        category: q.category,
+        timeLimit: q.timeLimit
+      }));
+    }
+
     const updatedJob = await Job.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
@@ -99,4 +118,4 @@ router.delete('/:id', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;
