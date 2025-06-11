@@ -6,49 +6,55 @@ import {
   Button,
   Typography,
   Box,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  Alert
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const Register = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('user');
+const UserRegister = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    if (password !== confirmPassword) {
+    if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
-        email,
-        password,
-        role
+      const response = await axios.post('http://localhost:5000/api/auth/user/register', {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password
       });
 
-      if (response.data.success) {
+      if (response.data.token) {
+        // Store the token in localStorage
+        localStorage.setItem('token', response.data.token);
+        // Redirect to login page
         navigate('/login');
-      } else {
-        setError('Registration failed');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Error registering');
+      setError(err.response?.data?.error || 'Error registering user');
     } finally {
       setLoading(false);
     }
@@ -59,7 +65,7 @@ const Register = () => {
       <Box sx={{ mt: 8 }}>
         <Paper sx={{ p: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom align="center">
-            Register
+            User Registration
           </Typography>
           
           {error && (
@@ -70,46 +76,47 @@ const Register = () => {
 
           <form onSubmit={handleSubmit}>
             <TextField
+              label="Name"
+              name="name"
+              fullWidth
+              margin="normal"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
+            
+            <TextField
               label="Email"
+              name="email"
               type="email"
               fullWidth
               margin="normal"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formData.email}
+              onChange={handleChange}
               required
             />
             
             <TextField
               label="Password"
+              name="password"
               type="password"
               fullWidth
               margin="normal"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={formData.password}
+              onChange={handleChange}
               required
             />
-
+            
             <TextField
               label="Confirm Password"
+              name="confirmPassword"
               type="password"
               fullWidth
               margin="normal"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              value={formData.confirmPassword}
+              onChange={handleChange}
               required
             />
-
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Role</InputLabel>
-              <Select
-                value={role}
-                label="Role"
-                onChange={(e) => setRole(e.target.value)}
-              >
-                <MenuItem value="user">User</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
-              </Select>
-            </FormControl>
 
             <Button
               type="submit"
@@ -131,6 +138,15 @@ const Register = () => {
             >
               Already have an account? Login
             </Button>
+
+            <Button
+              variant="text"
+              fullWidth
+              sx={{ mt: 1 }}
+              onClick={() => navigate('/')}
+            >
+              Back to Home
+            </Button>
           </form>
         </Paper>
       </Box>
@@ -138,4 +154,4 @@ const Register = () => {
   );
 };
 
-export default Register; 
+export default UserRegister; 
