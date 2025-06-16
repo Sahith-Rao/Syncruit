@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
 const { verifyToken, isCandidate } = require('../middleware/auth');
+const { db } = require('../server');
 
 // Candidate Register
 router.post('/register', verifyToken, async (req, res) => {
@@ -40,6 +41,17 @@ router.post('/login', verifyToken, async (req, res) => {
 // Protected candidate route example
 router.get('/dashboard', verifyToken, isCandidate, (req, res) => {
   res.json({ message: 'Welcome to candidate dashboard' });
+});
+
+// Get all jobs (from Firestore)
+router.get('/jobs', async (req, res) => {
+  try {
+    const snapshot = await db.collection('jobs').orderBy('createdAt', 'desc').get();
+    const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ jobs });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch jobs' });
+  }
 });
 
 module.exports = router; 

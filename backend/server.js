@@ -22,6 +22,9 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
+const db = admin.firestore();
+module.exports.db = db;
+
 // Routes
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/candidate', require('./routes/candidate'));

@@ -34,7 +34,7 @@ export default function CandidateLogin() {
       const data = await response.json();
       if (response.ok) {
         localStorage.setItem('token', idToken);
-        router.push('/candidate/dashboard');
+        router.push('/candidate/jobs');
       } else {
         setError(data.error || 'Invalid credentials');
       }
