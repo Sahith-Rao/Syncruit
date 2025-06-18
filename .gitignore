@@ -52,4 +52,28 @@ yarn-error.log*
 .vscode/
 *.swp
 *.swo
-.DS_Store 
+.DS_Store
+
+# Dependencies
+.pnp/
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# OS
+Thumbs.db
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# Cloudinary
+cloudinary.json 
