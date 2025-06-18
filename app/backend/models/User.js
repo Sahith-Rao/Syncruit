@@ -1,0 +1,1 @@
+// This file is now deprecated. Use Admin.js and Candidate.js for user models. 
