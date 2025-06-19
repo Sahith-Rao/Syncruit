@@ -9,8 +9,20 @@ import math
 import sys
 import requests
 import json
+import subprocess
 
 print('[DEBUG] hr_analyzer.py started', file=sys.stderr)
+
+def convert_to_mp4(input_path, output_path):
+    cmd = [
+        'ffmpeg',
+        '-y',  # overwrite output file if it exists
+        '-i', input_path,
+        '-c:v', 'libx264',
+        '-c:a', 'aac',
+        output_path
+    ]
+    subprocess.run(cmd, check=True)
 
 class StderrLogger:
     def message(self, s):
@@ -38,13 +50,19 @@ class HRFeedbackGenerator:
         }
 
     def _download_video(self, url):
-        local_filename = 'temp_interview_video.mp4'
+        import mimetypes
+        ext = os.path.splitext(url)[-1] or '.webm'
+        temp_input = 'temp_interview_video' + ext
+        temp_mp4 = 'temp_interview_video.mp4'
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
-            with open(local_filename, 'wb') as f:
+            with open(temp_input, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-        return local_filename
+        # Convert to mp4
+        convert_to_mp4(temp_input, temp_mp4)
+        os.remove(temp_input)
+        return temp_mp4
 
     def cleanup(self):
         if self._temp_file and os.path.exists(self._temp_file):

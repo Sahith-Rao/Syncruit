@@ -35,7 +35,6 @@ interface InterviewSession {
 
 export default function MockInterview() {
   const [candidateData, setCandidateData] = useState<any>(null);
-  const [selectedType, setSelectedType] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -69,18 +68,12 @@ export default function MockInterview() {
     }
   ]);
   const router = useRouter();
-  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [recordedVideo, setRecordedVideo] = useState<Blob | null>(null);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  const interviewTypes = [
-    { value: 'technical-frontend', label: 'Technical - Frontend', duration: '45 min', questions: 8 },
-    { value: 'technical-backend', label: 'Technical - Backend', duration: '45 min', questions: 8 },
-    { value: 'behavioral', label: 'Behavioral', duration: '30 min', questions: 6 },
-    { value: 'system-design', label: 'System Design', duration: '60 min', questions: 4 },
-    { value: 'leadership', label: 'Leadership', duration: '40 min', questions: 7 }
-  ];
 
   const sampleQuestions = {
     'technical-frontend': [
@@ -119,18 +112,39 @@ export default function MockInterview() {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  const startRecording = () => {
-    if (!selectedType) {
-      toast.error('Please select an interview type first');
-      return;
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      setMediaStream(stream);
+      let localChunks: Blob[] = [];
+      const recorder = new MediaRecorder(stream);
+      setMediaRecorder(recorder);
+      setRecordedVideo(null);
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          localChunks.push(event.data);
+        }
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(localChunks, { type: 'video/webm' });
+        setRecordedVideo(blob);
+        stream.getTracks().forEach((track) => track.stop());
+        setMediaStream(null);
+      };
+      recorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      setCurrentQuestion(0);
+      toast.success('Recording started! Answer the questions naturally.');
+    } catch (err) {
+      toast.error('Could not access camera/microphone.');
     }
-    setIsRecording(true);
-    setRecordingTime(0);
-    setCurrentQuestion(0);
-    toast.success('Recording started! Answer the questions naturally.');
   };
 
   const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
     setIsRecording(false);
     toast.success('Recording stopped! Your interview will be analyzed shortly.');
   };
@@ -139,14 +153,10 @@ export default function MockInterview() {
     setIsRecording(false);
     setRecordingTime(0);
     setCurrentQuestion(0);
-    setSelectedType('');
   };
 
   const nextQuestion = () => {
-    const selectedInterview = interviewTypes.find(type => type.value === selectedType);
-    if (selectedInterview && currentQuestion < selectedInterview.questions - 1) {
-      setCurrentQuestion(prev => prev + 1);
-    }
+    // You can implement question navigation logic here if needed, but no type selection
   };
 
   const formatTime = (seconds: number) => {
@@ -167,24 +177,16 @@ export default function MockInterview() {
     return 'bg-red-100 text-red-800';
   };
 
-  // Add a handler for file input (simulate recording for demo)
-  const handleVideoChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setVideoFile(e.target.files[0]);
-      setAnalysisResult(null);
-    }
-  };
-
-  // Upload video and get analysis
+  // Upload recorded video and get analysis
   const handleAnalyze = async () => {
-    if (!videoFile) {
-      toast.error('Please record or upload a video first.');
+    if (!recordedVideo) {
+      toast.error('Please record a video first.');
       return;
     }
     setIsAnalyzing(true);
     setAnalysisResult(null);
     const formData = new FormData();
-    formData.append('video', videoFile);
+    formData.append('video', recordedVideo, 'interview.webm');
     try {
       const res = await fetch('http://localhost:5000/api/analyze-interview', {
         method: 'POST',
@@ -231,25 +233,58 @@ export default function MockInterview() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Video upload/recording UI */}
+                {/* Video recording UI */}
                 <div className="space-y-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload or Record Interview Video
+                    Record Interview Video
                   </label>
-                  <input type="file" accept="video/*" onChange={handleVideoChange} />
-                  {videoFile && (
-                    <video ref={videoRef} controls className="w-full max-w-md mt-2">
-                      <source src={URL.createObjectURL(videoFile)} type={videoFile.type} />
+                  {!isRecording && !recordedVideo && (
+                    <Button onClick={startRecording} className="mr-2">
+                      Start Recording
+                    </Button>
+                  )}
+                  {isRecording && (
+                    <Button onClick={stopRecording} variant="destructive" className="mr-2">
+                      Stop Recording
+                    </Button>
+                  )}
+                  {mediaStream && isRecording && (
+                    <video ref={videoRef} autoPlay muted className="w-full max-w-md mt-2" />
+                  )}
+                  {recordedVideo && !isRecording && (
+                    <video controls className="w-full max-w-md mt-2">
+                      <source src={URL.createObjectURL(recordedVideo)} type="video/webm" />
                     </video>
                   )}
                 </div>
-                <Button onClick={handleAnalyze} disabled={!videoFile || isAnalyzing} className="mt-4">
+                <Button onClick={handleAnalyze} disabled={!recordedVideo || isAnalyzing} className="mt-4">
                   {isAnalyzing ? 'Analyzing...' : 'Submit for Analysis'}
                 </Button>
                 {analysisResult && (
-                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded">
-                    <h3 className="text-lg font-bold mb-2 text-green-700">Analysis Result</h3>
-                    <pre className="text-sm text-gray-800 whitespace-pre-wrap">{JSON.stringify(analysisResult, null, 2)}</pre>
+                  <div className="mt-6 p-6 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="text-2xl font-bold text-green-800 mb-4">
+                      Overall Score: <span className="font-extrabold">{analysisResult.overall_score}</span>
+                    </div>
+                    <div className="mt-4">
+                      <h4 className="text-lg font-semibold text-green-700 mb-2">Detailed Metrics</h4>
+                      <ul className="ml-4 list-disc">
+                        {analysisResult.detailed_metrics &&
+                          Object.entries(analysisResult.detailed_metrics).map(([metric, value]) => (
+                            <li key={metric} className="mb-1">
+                              <span className="font-medium capitalize">{metric.replace(/_/g, ' ')}:</span> {String(value)}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                    <div className="mt-4">
+                      <h4 className="text-lg font-semibold text-green-700 mb-2">Feedback Comments</h4>
+                      <ul className="ml-4 list-disc">
+                        {analysisResult.feedback_comments &&
+                          analysisResult.feedback_comments.map((comment: string, idx: number) => (
+                            <li key={idx} className="mb-1">{comment}</li>
+                          ))}
+                      </ul>
+                    </div>
                   </div>
                 )}
               </CardContent>
