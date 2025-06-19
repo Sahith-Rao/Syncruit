@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, ChangeEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import CandidateNavbar from '@/components/candidate-navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,6 +69,10 @@ export default function MockInterview() {
     }
   ]);
   const router = useRouter();
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const interviewTypes = [
     { value: 'technical-frontend', label: 'Technical - Frontend', duration: '45 min', questions: 8 },
@@ -163,6 +167,42 @@ export default function MockInterview() {
     return 'bg-red-100 text-red-800';
   };
 
+  // Add a handler for file input (simulate recording for demo)
+  const handleVideoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setVideoFile(e.target.files[0]);
+      setAnalysisResult(null);
+    }
+  };
+
+  // Upload video and get analysis
+  const handleAnalyze = async () => {
+    if (!videoFile) {
+      toast.error('Please record or upload a video first.');
+      return;
+    }
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+    const formData = new FormData();
+    formData.append('video', videoFile);
+    try {
+      const res = await fetch('http://localhost:5000/api/analyze-interview', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.analysis) {
+        setAnalysisResult(data.analysis);
+        toast.success('Analysis complete!');
+      } else {
+        toast.error(data.error || 'Analysis failed');
+      }
+    } catch (err) {
+      toast.error('Network error');
+    }
+    setIsAnalyzing(false);
+  };
+
   if (!candidateData) {
     return <div>Loading...</div>;
   }
@@ -191,131 +231,25 @@ export default function MockInterview() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {!isRecording ? (
-                  <>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Interview Type
-                        </label>
-                        <Select onValueChange={setSelectedType} value={selectedType}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose interview type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {interviewTypes.map((type) => (
-                              <SelectItem key={type.value} value={type.value}>
-                                <div className="flex justify-between items-center w-full">
-                                  <span>{type.label}</span>
-                                  <span className="text-sm text-gray-500 ml-4">
-                                    {type.duration} • {type.questions} questions
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {selectedType && (
-                        <div className="bg-blue-50 p-4 rounded-lg">
-                          <h4 className="font-medium text-blue-900 mb-2">Interview Details</h4>
-                          <div className="text-sm text-blue-800 space-y-1">
-                            <p>• Duration: {interviewTypes.find(t => t.value === selectedType)?.duration}</p>
-                            <p>• Questions: {interviewTypes.find(t => t.value === selectedType)?.questions}</p>
-                            <p>• You'll have time to think before answering each question</p>
-                            <p>• Speak clearly and maintain eye contact with the camera</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex gap-4">
-                      <Button 
-                        onClick={startRecording}
-                        className="bg-red-600 hover:bg-red-700 flex-1"
-                        disabled={!selectedType}
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        Start Interview
-                      </Button>
-                      <Button variant="outline" className="flex items-center">
-                        <Settings className="w-4 h-4 mr-2" />
-                        Test Camera & Mic
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Recording Interface */}
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center">
-                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                          <span className="text-red-700 font-medium">Recording</span>
-                        </div>
-                        <div className="text-red-700 font-mono text-lg">
-                          {formatTime(recordingTime)}
-                        </div>
-                      </div>
-                      
-                      <div className="bg-gray-900 rounded-lg aspect-video flex items-center justify-center mb-4">
-                        <div className="text-center text-white">
-                          <Camera className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm opacity-75">Camera feed would appear here</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-center space-x-2 mb-4">
-                        <Mic className="w-4 h-4 text-green-500" />
-                        <div className="flex space-x-1">
-                          {[...Array(5)].map((_, i) => (
-                            <div 
-                              key={i} 
-                              className={`w-2 h-4 rounded ${i < 3 ? 'bg-green-500' : 'bg-gray-300'}`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-600">Audio levels good</span>
-                      </div>
-                    </div>
-
-                    {/* Current Question */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">
-                          Question {currentQuestion + 1} of {interviewTypes.find(t => t.value === selectedType)?.questions}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-gray-800 text-lg mb-4">
-                          {selectedType === 'technical-frontend' && sampleQuestions['technical-frontend'][currentQuestion] ||
-                           selectedType === 'behavioral' && sampleQuestions['behavioral'][currentQuestion] ||
-                           'Sample interview question would appear here based on the selected type.'}
-                        </p>
-                        <div className="flex gap-2">
-                          <Button onClick={nextQuestion} variant="outline" size="sm">
-                            Next Question
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Recording Controls */}
-                    <div className="flex gap-4">
-                      <Button 
-                        onClick={stopRecording}
-                        variant="outline"
-                        className="flex-1"
-                      >
-                        <Square className="w-4 h-4 mr-2" />
-                        Stop & Submit
-                      </Button>
-                      <Button onClick={resetInterview} variant="outline">
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Reset
-                      </Button>
-                    </div>
+                {/* Video upload/recording UI */}
+                <div className="space-y-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Upload or Record Interview Video
+                  </label>
+                  <input type="file" accept="video/*" onChange={handleVideoChange} />
+                  {videoFile && (
+                    <video ref={videoRef} controls className="w-full max-w-md mt-2">
+                      <source src={URL.createObjectURL(videoFile)} type={videoFile.type} />
+                    </video>
+                  )}
+                </div>
+                <Button onClick={handleAnalyze} disabled={!videoFile || isAnalyzing} className="mt-4">
+                  {isAnalyzing ? 'Analyzing...' : 'Submit for Analysis'}
+                </Button>
+                {analysisResult && (
+                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded">
+                    <h3 className="text-lg font-bold mb-2 text-green-700">Analysis Result</h3>
+                    <pre className="text-sm text-gray-800 whitespace-pre-wrap">{JSON.stringify(analysisResult, null, 2)}</pre>
                   </div>
                 )}
               </CardContent>
