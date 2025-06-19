@@ -15,6 +15,7 @@ import { useAuth } from '@/src/contexts/AuthContext';
 
 export default function PostJob() {
   const { user } = useAuth();
+  const [authChecked, setAuthChecked] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     company: '',
@@ -25,10 +26,26 @@ export default function PostJob() {
     description: '',
     requirements: '',
     benefits: '',
-    lastDate: ''
+    lastDate: '',
+    skillsRequired: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setAuthChecked(true);
+  }, [user]);
+
+  if (!authChecked) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user || user.role !== 'admin') {
+    if (typeof window !== 'undefined') {
+      router.push('/admin/login');
+    }
+    return <div>Loading...</div>;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +61,9 @@ export default function PostJob() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          skillsRequired: formData.skillsRequired
+            ? formData.skillsRequired.split(',').map(s => s.trim()).filter(Boolean)
+            : [],
           postedBy: user?._id,
         }),
       });
@@ -60,7 +80,8 @@ export default function PostJob() {
           description: '',
           requirements: '',
           benefits: '',
-          lastDate: ''
+          lastDate: '',
+          skillsRequired: ''
         });
       } else {
         toast.error(data.error || "Failed to post job");
@@ -88,13 +109,6 @@ export default function PostJob() {
   const handlePreview = () => {
     toast.info('Preview functionality will be implemented soon');
   };
-
-  if (!user || user.role !== 'admin') {
-    if (typeof window !== 'undefined') {
-      router.push('/admin/login');
-    }
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -260,6 +274,17 @@ export default function PostJob() {
                   placeholder="Describe the benefits, perks, and what makes your company great..."
                   rows={4}
                   value={formData.benefits}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="skillsRequired">Skills Required (comma-separated)</Label>
+                <Input
+                  id="skillsRequired"
+                  name="skillsRequired"
+                  placeholder="e.g. React, Node.js, MongoDB"
+                  value={formData.skillsRequired}
                   onChange={handleChange}
                 />
               </div>

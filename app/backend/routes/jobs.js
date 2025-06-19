@@ -17,6 +17,7 @@ router.post('/', async (req, res) => {
       requirements,
       benefits,
       lastDate,
+      skillsRequired,
       postedBy
     } = req.body;
 
@@ -35,12 +36,23 @@ router.post('/', async (req, res) => {
       requirements,
       benefits,
       lastDate,
+      skillsRequired,
       postedBy
     });
     await job.save();
     res.status(201).json({ message: 'Job posted successfully', job });
   } catch (error) {
     res.status(500).json({ error: 'Failed to post job' });
+  }
+});
+
+// GET /api/jobs - Get all jobs
+router.get('/', async (req, res) => {
+  try {
+    const jobs = await Job.find().sort({ createdAt: -1 });
+    res.json(jobs);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch jobs' });
   }
 });
 

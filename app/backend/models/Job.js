@@ -11,6 +11,7 @@ const jobSchema = new mongoose.Schema({
   requirements: { type: String },
   benefits: { type: String },
   lastDate: { type: String },
+  skillsRequired: [{ type: String }],
   postedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
   createdAt: { type: Date, default: Date.now }
 });
