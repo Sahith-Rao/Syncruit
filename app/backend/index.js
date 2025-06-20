@@ -8,6 +8,7 @@ import http from 'http';
 import authRoutes from './routes/auth.js';
 import jobsRoutes from './routes/jobs.js';
 import analyzeRoutes from './routes/analyze.js';
+import resumeRoutes from './routes/resume.js';
 
 const app = express();
 app.use(cors());
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/analyze-interview', analyzeRoutes);
+app.use('/api/analyze/resume', resumeRoutes);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {

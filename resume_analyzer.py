@@ -3,15 +3,18 @@ import PyPDF2
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
+import sys
 
 # Load spaCy NER model
 nlp = spacy.load("en_core_web_sm")
 
-# Sample job description
-job_description = "NLP Specialist: Develop and implement NLP algorithms. Proficiency in, NLP libraries, and frameworks required."
+# Accept arguments from command line
+if len(sys.argv) < 3:
+    print("0")
+    sys.exit(1)
 
-# Path to the single resume PDF
-resume_path = "./Resume.pdf"  # Change this to the actual file
+resume_path = sys.argv[1]
+job_description = sys.argv[2]
 
 # Extract text from PDF
 def extract_text_from_pdf(pdf_path):
@@ -41,5 +44,5 @@ tfidf_vectorizer = TfidfVectorizer()
 tfidf_matrix = tfidf_vectorizer.fit_transform([job_description, resume_text])
 similarity_score = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
 
-# Output the result
-print(f"Similarity Score: {similarity_score:.2f}")
+# Output only the numeric score (0-100 integer)
+print(int(similarity_score * 100))

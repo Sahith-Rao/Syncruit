@@ -18,6 +18,14 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Job {
   _id: string;
@@ -27,7 +35,7 @@ interface Job {
   salary: string;
   jobType?: string;
   experience?: string;
-  description?: string;
+  description: string;
   requirements?: string;
   benefits?: string;
   lastDate?: string;
@@ -39,6 +47,9 @@ export default function CandidateDashboard() {
   const [candidateData, setCandidateData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [isApplying, setIsApplying] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -58,23 +69,60 @@ export default function CandidateDashboard() {
       .catch(err => console.error(err));
   }, []);
 
-  const handleApplyJob = (jobId: string, jobTitle: string) => {
+  const handleApplyClick = (job: Job) => {
     const existingApplications = JSON.parse(localStorage.getItem('candidateApplications') || '[]');
-    const alreadyApplied = existingApplications.some((app: any) => app.jobId === jobId);
+    const alreadyApplied = existingApplications.some((app: any) => app.jobId === job._id);
     if (alreadyApplied) {
       toast.error('You have already applied for this job');
       return;
     }
-    const newApplication = {
-      jobId,
-      jobTitle,
-      company: jobs.find(job => job._id === jobId)?.company,
-      appliedDate: new Date().toISOString().split('T')[0],
-      status: 'Applied'
-    };
-    const updatedApplications = [...existingApplications, newApplication];
-    localStorage.setItem('candidateApplications', JSON.stringify(updatedApplications));
-    toast.success(`Successfully applied for ${jobTitle}!`);
+    setSelectedJob(job);
+    setIsApplying(true);
+  };
+
+  const handleResumeSubmit = async () => {
+    if (!resumeFile || !selectedJob || !selectedJob.description) return;
+
+    const formData = new FormData();
+    formData.append('resume', resumeFile);
+    formData.append('jobDescription', selectedJob.description);
+    formData.append('candidateId', candidateData._id);
+    formData.append('jobId', selectedJob._id);
+
+    try {
+      const res = await fetch('http://localhost:5000/api/analyze/resume', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Resume analysis failed');
+      }
+
+      const { score, application } = await res.json();
+
+      const newApplication = {
+        jobId: selectedJob._id,
+        jobTitle: selectedJob.title,
+        company: selectedJob.company,
+        appliedDate: new Date().toISOString().split('T')[0],
+        status: application?.status || 'Applied',
+        score: score,
+        applicationId: application?._id,
+      };
+
+      const existingApplications = JSON.parse(localStorage.getItem('candidateApplications') || '[]');
+      const updatedApplications = [...existingApplications, newApplication];
+      localStorage.setItem('candidateApplications', JSON.stringify(updatedApplications));
+      
+      toast.success(`Successfully applied for ${selectedJob.title}!`);
+      setIsApplying(false);
+      setResumeFile(null);
+      setSelectedJob(null);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to apply. Please try again.');
+    }
   };
 
   const filteredJobs = jobs.filter(job =>
@@ -184,7 +232,7 @@ export default function CandidateDashboard() {
                   <div className="flex flex-col items-end gap-4">
                     <Button
                       variant="default"
-                      onClick={() => handleApplyJob(job._id, job.title)}
+                      onClick={() => handleApplyClick(job)}
                     >
                       Apply
                     </Button>
@@ -205,6 +253,36 @@ export default function CandidateDashboard() {
           ))}
         </div>
       </div>
+      <Dialog open={isApplying} onOpenChange={setIsApplying}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apply for {selectedJob?.title}</DialogTitle>
+            <DialogDescription>
+              Upload your resume to apply for this position. Our AI will analyze it against the job description.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="resume" className="block text-sm font-medium text-gray-700">
+                Resume (PDF)
+              </label>
+              <Input
+                id="resume"
+                type="file"
+                accept=".pdf"
+                onChange={(e) => setResumeFile(e.target.files ? e.target.files[0] : null)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsApplying(false)}>Cancel</Button>
+            <Button onClick={handleResumeSubmit} disabled={!resumeFile}>
+              Submit Application
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
