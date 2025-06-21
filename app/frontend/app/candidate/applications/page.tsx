@@ -18,82 +18,32 @@ import {
   Filter,
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  BarChart
 } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface Application {
-  id: number;
-  jobId: number;
-  jobTitle: string;
-  company: string;
-  location: string;
-  salary: string;
-  appliedDate: string;
+  _id: string;
+  job: {
+    _id: string;
+    title: string;
+    company: string;
+    location: string;
+    salary: string;
+  };
+  resumeScore: number;
+  appliedAt: string;
   status: 'Applied' | 'Under Review' | 'Interview Scheduled' | 'Rejected' | 'Accepted';
-  lastUpdate: string;
 }
 
 export default function MyApplications() {
   const [candidateData, setCandidateData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [applications] = useState<Application[]>([
-    {
-      id: 1,
-      jobId: 1,
-      jobTitle: 'Senior Frontend Developer',
-      company: 'TechCorp Inc.',
-      location: 'San Francisco, CA',
-      salary: '$120,000 - $150,000',
-      appliedDate: '2024-01-20',
-      status: 'Under Review',
-      lastUpdate: '2024-01-22'
-    },
-    {
-      id: 2,
-      jobId: 2,
-      jobTitle: 'Product Manager',
-      company: 'InnovateLab',
-      location: 'New York, NY',
-      salary: '$100,000 - $130,000',
-      appliedDate: '2024-01-18',
-      status: 'Interview Scheduled',
-      lastUpdate: '2024-01-25'
-    },
-    {
-      id: 3,
-      jobId: 3,
-      jobTitle: 'UX Designer',
-      company: 'DesignStudio',
-      location: 'Austin, TX',
-      salary: '$80,000 - $100,000',
-      appliedDate: '2024-01-15',
-      status: 'Applied',
-      lastUpdate: '2024-01-15'
-    },
-    {
-      id: 4,
-      jobId: 4,
-      jobTitle: 'Backend Developer',
-      company: 'DataSystems Co.',
-      location: 'Seattle, WA',
-      salary: '$110,000 - $140,000',
-      appliedDate: '2024-01-10',
-      status: 'Rejected',
-      lastUpdate: '2024-01-24'
-    },
-    {
-      id: 5,
-      jobId: 5,
-      jobTitle: 'Marketing Specialist',
-      company: 'GrowthCo',
-      location: 'Remote',
-      salary: '$60,000 - $80,000',
-      appliedDate: '2024-01-08',
-      status: 'Accepted',
-      lastUpdate: '2024-01-26'
-    }
-  ]);
+  const [applications, setApplications] = useState<Application[]>([]);
   const router = useRouter();
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const userType = localStorage.getItem('userType');
@@ -104,8 +54,21 @@ export default function MyApplications() {
       return;
     }
     
-    setCandidateData(JSON.parse(storedCandidateData));
+    const parsedData = JSON.parse(storedCandidateData);
+    setCandidateData(parsedData);
+    fetchApplications(parsedData._id);
   }, [router]);
+
+  const fetchApplications = (candidateId: string) => {
+    fetch(`${API_URL}/api/applications/${candidateId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setApplications(data);
+        }
+      })
+      .catch(err => console.error("Failed to fetch applications", err));
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -142,9 +105,9 @@ export default function MyApplications() {
   };
 
   const filteredApplications = applications.filter(app =>
-    app.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.location.toLowerCase().includes(searchTerm.toLowerCase())
+    app.job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    app.job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    app.job.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getApplicationStats = () => {
@@ -242,67 +205,56 @@ export default function MyApplications() {
 
         {/* Applications List */}
         <div className="space-y-6">
-          {filteredApplications.map((application) => (
-            <Card key={application.id} className="hover:shadow-lg transition-shadow">
+          {filteredApplications.length > 0 ? filteredApplications.map((application) => (
+            <Card key={application._id} className="hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex-1 mb-4 lg:mb-0">
                     <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-1">{application.jobTitle}</h3>
-                        <div className="flex items-center text-lg text-gray-700 font-medium">
-                          <Building className="w-4 h-4 mr-1" />
-                          {application.company}
-                        </div>
-                      </div>
-                      <Badge className={`${getStatusColor(application.status)} flex items-center`}>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-1">{application.job.title}</h3>
+                      <Badge className={getStatusColor(application.status)}>
                         {getStatusIcon(application.status)}
-                        <span className="ml-1">{application.status}</span>
+                        <span className="ml-2">{application.status}</span>
                       </Badge>
                     </div>
-                    
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        {application.location}
-                      </div>
-                      <div className="flex items-center">
-                        <DollarSign className="w-4 h-4 mr-1" />
-                        {application.salary}
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        Applied {application.appliedDate}
-                      </div>
+                    <div className="flex items-center text-gray-600 mb-4">
+                      <Building className="w-4 h-4 mr-2" />
+                      <p>{application.job.company}</p>
                     </div>
 
-                    <div className="text-sm text-gray-500">
-                      Last updated: {application.lastUpdate}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-700">
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>{application.job.location}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <DollarSign className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>{application.job.salary}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>Applied on {format(new Date(application.appliedAt), 'MMM d, yyyy')}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <BarChart className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>Resume Score: {application.resumeScore}</span>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="flex flex-col gap-2 lg:ml-6">
-                    <Button variant="outline" size="sm" className="flex items-center">
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Job Details
-                    </Button>
-                    {application.status === 'Interview Scheduled' && (
-                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        View Interview Details
-                      </Button>
-                    )}
-                    {application.status === 'Accepted' && (
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        View Offer Details
-                      </Button>
-                    )}
+                  <div className="flex flex-col items-end gap-4">
+                    <Button variant="default">View Job</Button>
+                    <Button variant="outline">Withdraw Application</Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )) : (
+            <Card>
+              <CardContent className="pt-6 text-center text-gray-500">
+                You have not applied to any jobs yet.
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {filteredApplications.length === 0 && (

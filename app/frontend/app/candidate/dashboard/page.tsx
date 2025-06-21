@@ -47,10 +47,13 @@ export default function CandidateDashboard() {
   const [candidateData, setCandidateData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   const [isApplying, setIsApplying] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const router = useRouter();
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const userType = localStorage.getItem('userType');
@@ -59,7 +62,9 @@ export default function CandidateDashboard() {
       router.push('/candidate/login');
       return;
     }
-    setCandidateData(JSON.parse(storedCandidateData));
+    const parsedData = JSON.parse(storedCandidateData);
+    setCandidateData(parsedData);
+    fetchAppliedJobs(parsedData._id);
   }, [router]);
 
   useEffect(() => {
@@ -69,10 +74,18 @@ export default function CandidateDashboard() {
       .catch(err => console.error(err));
   }, []);
 
+  const fetchAppliedJobs = (candidateId: string) => {
+    fetch(`${API_URL}/api/applications/${candidateId}`)
+      .then(res => res.json())
+      .then((applications: any[]) => {
+        const jobIds = new Set(applications.map(app => app.job._id));
+        setAppliedJobIds(jobIds);
+      })
+      .catch(err => console.error('Failed to fetch applications', err));
+  };
+
   const handleApplyClick = (job: Job) => {
-    const existingApplications = JSON.parse(localStorage.getItem('candidateApplications') || '[]');
-    const alreadyApplied = existingApplications.some((app: any) => app.jobId === job._id);
-    if (alreadyApplied) {
+    if (appliedJobIds.has(job._id)) {
       toast.error('You have already applied for this job');
       return;
     }
@@ -101,6 +114,8 @@ export default function CandidateDashboard() {
 
       const { score, application } = await res.json();
 
+      setAppliedJobIds(prev => new Set(prev).add(application.job));
+
       const newApplication = {
         jobId: selectedJob._id,
         jobTitle: selectedJob.title,
@@ -125,7 +140,9 @@ export default function CandidateDashboard() {
     }
   };
 
-  const filteredJobs = jobs.filter(job =>
+  const availableJobs = jobs.filter(job => !appliedJobIds.has(job._id));
+
+  const filteredJobs = availableJobs.filter(job =>
     job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
     job.location.toLowerCase().includes(searchTerm.toLowerCase())
