@@ -15,65 +15,32 @@ import {
   Edit,
   Trash2,
   Eye,
-  Filter
+  Filter,
+  Users
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 interface Job {
-  id: number;
+  _id: string;
   title: string;
   company: string;
   location: string;
   salary: string;
   description: string;
   lastDate: string;
-  postedDate: string;
-  applications: number;
-  status: 'Active' | 'Closed' | 'Draft';
+  createdAt: string;
+  applicationCount: number;
+  status?: 'Active' | 'Closed' | 'Draft'; // Assuming status might come from backend
 }
 
 export default function ManageJobs() {
   const [adminData, setAdminData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [jobs] = useState<Job[]>([
-    {
-      id: 1,
-      title: 'Senior Frontend Developer',
-      company: 'TechCorp Inc.',
-      location: 'San Francisco, CA',
-      salary: '$120,000 - $150,000',
-      description: 'We are looking for a senior frontend developer to join our team and work on cutting-edge web applications.',
-      lastDate: '2024-02-15',
-      postedDate: '2024-01-15',
-      applications: 15,
-      status: 'Active'
-    },
-    {
-      id: 2,
-      title: 'Product Manager',
-      company: 'InnovateLab',
-      location: 'New York, NY',
-      salary: '$100,000 - $130,000',
-      description: 'Join our product team to drive innovation and deliver exceptional user experiences.',
-      lastDate: '2024-02-12',
-      postedDate: '2024-01-12',
-      applications: 23,
-      status: 'Active'
-    },
-    {
-      id: 3,
-      title: 'UX Designer',
-      company: 'DesignStudio',
-      location: 'Austin, TX',
-      salary: '$80,000 - $100,000',
-      description: 'Create beautiful and intuitive user experiences for our digital products.',
-      lastDate: '2024-02-10',
-      postedDate: '2024-01-10',
-      applications: 8,
-      status: 'Active'
-    }
-  ]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const router = useRouter();
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const userType = localStorage.getItem('userType');
@@ -84,19 +51,37 @@ export default function ManageJobs() {
       return;
     }
     
-    setAdminData(JSON.parse(storedAdminData));
+    const parsedData = JSON.parse(storedAdminData);
+    setAdminData(parsedData);
+    fetchJobs(parsedData._id);
   }, [router]);
 
-  const handleDeleteJob = (jobId: number, jobTitle: string) => {
-    toast.success(`Job "${jobTitle}" has been deleted successfully`);
+  const fetchJobs = (adminId: string) => {
+    fetch(`${API_URL}/api/jobs?adminId=${adminId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setJobs(data);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch jobs", err);
+        toast.error('Failed to load your jobs. Please try again later.');
+      });
   };
 
-  const handleEditJob = (jobId: number) => {
+  const handleDeleteJob = (jobId: string, jobTitle: string) => {
+    toast.success(`Job "${jobTitle}" has been deleted successfully`);
+    // Here you would also add the API call to delete the job
+    // and then filter it from the local state `setJobs(jobs.filter(j => j._id !== jobId))`
+  };
+
+  const handleEditJob = (jobId: string) => {
     toast.info('Edit functionality will be implemented soon');
   };
 
-  const handleViewApplications = (jobId: number, jobTitle: string) => {
-    toast.info(`Viewing applications for "${jobTitle}"`);
+  const handleViewApplications = (jobId: string) => {
+    router.push(`/admin/manage-jobs/${jobId}`);
   };
 
   const filteredJobs = jobs.filter(job =>
@@ -156,7 +141,7 @@ export default function ManageJobs() {
         {/* Jobs List */}
         <div className="space-y-6">
           {filteredJobs.map((job) => (
-            <Card key={job.id} className="hover:shadow-lg transition-shadow">
+            <Card key={job._id} className="hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex-1 mb-4 lg:mb-0">
@@ -165,8 +150,8 @@ export default function ManageJobs() {
                         <h3 className="text-xl font-semibold text-gray-900 mb-1">{job.title}</h3>
                         <p className="text-lg text-gray-700 font-medium">{job.company}</p>
                       </div>
-                      <Badge className={getStatusColor(job.status)}>
-                        {job.status}
+                      <Badge className={getStatusColor(job.status || 'Active')}>
+                        {job.status || 'Active'}
                       </Badge>
                     </div>
                     
@@ -181,34 +166,35 @@ export default function ManageJobs() {
                       </div>
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-1" />
-                        Posted {job.postedDate}
+                        Posted {format(new Date(job.createdAt), 'MMM d, yyyy')}
                       </div>
                     </div>
 
                     <p className="text-gray-600 mb-3 line-clamp-2">{job.description}</p>
 
                     <div className="flex items-center justify-between text-sm">
-                      <div className="text-gray-500">
-                        Applications: <span className="font-medium text-blue-600">{job.applications}</span>
+                      <div className="flex items-center text-gray-500">
+                        <Users className="w-4 h-4 mr-1 text-blue-500" />
+                        Applications: <span className="font-medium text-blue-600 ml-1">{job.applicationCount}</span>
                       </div>
                       <div className="text-gray-500">
-                        Closes: {job.lastDate}
+                        Closes: {format(new Date(job.lastDate), 'MMM d, yyyy')}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2 lg:ml-6">
+                  <div className="flex flex-col gap-2 lg:ml-6 mt-4 lg:mt-0">
                     <Button 
-                      onClick={() => handleViewApplications(job.id, job.title)}
+                      onClick={() => handleViewApplications(job._id)}
                       variant="outline" 
                       size="sm"
                       className="flex items-center"
                     >
                       <Eye className="w-4 h-4 mr-2" />
-                      View Applications ({job.applications})
+                      View Applications ({job.applicationCount})
                     </Button>
                     <Button 
-                      onClick={() => handleEditJob(job.id)}
+                      onClick={() => handleEditJob(job._id)}
                       variant="outline" 
                       size="sm"
                       className="flex items-center"
@@ -217,7 +203,7 @@ export default function ManageJobs() {
                       Edit Job
                     </Button>
                     <Button 
-                      onClick={() => handleDeleteJob(job.id, job.title)}
+                      onClick={() => handleDeleteJob(job._id, job.title)}
                       variant="outline" 
                       size="sm"
                       className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50"
