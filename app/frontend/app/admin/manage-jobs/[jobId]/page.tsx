@@ -21,6 +21,7 @@ interface Applicant {
   resumeScore: number;
   resumeUrl: string;
   appliedAt: string;
+  shortlisted: boolean;
 }
 
 export default function ViewApplications() {
@@ -29,8 +30,12 @@ export default function ViewApplications() {
   const jobId = params.jobId as string;
 
   const [applications, setApplications] = useState<Applicant[]>([]);
-  const [jobTitle, setJobTitle] = useState(''); // Could fetch job details too
+  const [jobTitle, setJobTitle] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [topN, setTopN] = useState<number>(0);
+  const [shortlisting, setShortlisting] = useState(false);
+  const [shortlistedIds, setShortlistedIds] = useState<string[]>([]);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -41,8 +46,6 @@ export default function ViewApplications() {
         .then(data => {
           if (Array.isArray(data)) {
             setApplications(data);
-            // You could fetch job details separately to get the title
-            // For now, we'll just show a generic title
           }
           setIsLoading(false);
         })
@@ -59,6 +62,37 @@ export default function ViewApplications() {
     return 'bg-red-100 text-red-800';
   };
 
+  // Sorting logic
+  const sortedApplications = [...applications].sort((a, b) =>
+    sortOrder === 'desc' ? b.resumeScore - a.resumeScore : a.resumeScore - b.resumeScore
+  );
+
+  // Top N logic
+  const displayedApplications = topN > 0 ? sortedApplications.slice(0, topN) : sortedApplications;
+
+  const handleShortlist = async () => {
+    setShortlisting(true);
+    try {
+      const applicationIds = displayedApplications.map(app => app._id);
+      const res = await fetch(`${API_URL}/api/applications/shortlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationIds, jobId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShortlistedIds(applicationIds);
+        alert('Shortlisted and emails sent!');
+      } else {
+        alert(data.error || 'Failed to shortlist applicants.');
+      }
+    } catch (err) {
+      alert('Failed to shortlist applicants.');
+    } finally {
+      setShortlisting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
@@ -70,11 +104,43 @@ export default function ViewApplications() {
         <Card>
           <CardHeader>
             <CardTitle>Applications for {jobTitle || `Job ID: ${jobId}`}</CardTitle>
+            <div className="flex flex-wrap gap-4 mt-4">
+              <div>
+                <label className="mr-2 font-medium">Sort by Resume Score:</label>
+                <select
+                  value={sortOrder}
+                  onChange={e => setSortOrder(e.target.value as 'asc' | 'desc')}
+                  className="border rounded px-2 py-1"
+                >
+                  <option value="desc">High to Low</option>
+                  <option value="asc">Low to High</option>
+                </select>
+              </div>
+              <div>
+                <label className="mr-2 font-medium">Top N:</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={applications.length}
+                  value={topN}
+                  onChange={e => setTopN(Number(e.target.value))}
+                  className="border rounded px-2 py-1 w-20"
+                  placeholder="All"
+                />
+              </div>
+              <Button
+                variant="default"
+                disabled={shortlisting || displayedApplications.length === 0}
+                onClick={handleShortlist}
+              >
+                {shortlisting ? 'Shortlisting...' : 'Shortlist'}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <p>Loading applications...</p>
-            ) : applications.length > 0 ? (
+            ) : displayedApplications.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -82,10 +148,11 @@ export default function ViewApplications() {
                     <TableHead>Resume Score</TableHead>
                     <TableHead>Applied On</TableHead>
                     <TableHead>Resume</TableHead>
+                    <TableHead>Shortlisted</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {applications.map((app) => (
+                  {displayedApplications.map((app) => (
                     <TableRow key={app._id}>
                       <TableCell>
                         <div className="flex items-center gap-4">
@@ -112,6 +179,13 @@ export default function ViewApplications() {
                             View Resume
                           </a>
                         </Button>
+                      </TableCell>
+                      <TableCell>
+                        {shortlistedIds.includes(app._id) || app.shortlisted ? (
+                          <Badge className="bg-green-100 text-green-800">Shortlisted</Badge>
+                        ) : (
+                          <Badge className="bg-gray-100 text-gray-800">Not Shortlisted</Badge>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

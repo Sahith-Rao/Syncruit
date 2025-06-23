@@ -1,6 +1,7 @@
 import express from 'express';
 import Application from '../models/Application.js';
 import mongoose from 'mongoose';
+import nodemailer from 'nodemailer';
 
 const router = express.Router();
 
@@ -49,6 +50,49 @@ router.get('/candidate/:candidateId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching applications:', error);
     res.status(500).json({ error: 'Server error while fetching applications.' });
+  }
+});
+
+// POST /api/applications/shortlist - Shortlist applicants and send emails
+router.post('/shortlist', async (req, res) => {
+  try {
+    const { applicationIds, jobId } = req.body;
+    if (!Array.isArray(applicationIds) || !jobId) {
+      return res.status(400).json({ error: 'applicationIds (array) and jobId are required.' });
+    }
+
+    // Update applications as shortlisted
+    const updated = await Application.updateMany(
+      { _id: { $in: applicationIds }, job: jobId },
+      { $set: { shortlisted: true, status: 'Shortlisted' } }
+    );
+
+    // Fetch candidate emails
+    const shortlistedApps = await Application.find({ _id: { $in: applicationIds } }).populate('candidate');
+    const emails = shortlistedApps.map(app => app.candidate.email);
+
+    // Send emails (using nodemailer, configure with your SMTP or a test account)
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: emails,
+      subject: 'You have been shortlisted!',
+      text: 'Congratulations! You have been shortlisted for the next round. We will contact you soon.'
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ message: 'Shortlisted and emails sent', updatedCount: updated.nModified || updated.modifiedCount });
+  } catch (error) {
+    console.error('Error shortlisting applicants:', error);
+    res.status(500).json({ error: 'Failed to shortlist applicants and send emails.' });
   }
 });
 

@@ -6,7 +6,8 @@ const applicationSchema = new mongoose.Schema({
   resumeScore: { type: Number, required: true },
   resumeUrl: { type: String },
   appliedAt: { type: Date, default: Date.now },
-  status: { type: String, default: 'Applied' }
+  status: { type: String, default: 'Applied' },
+  shortlisted: { type: Boolean, default: false }
 }, { collection: 'applications' });
 
 export default mongoose.model('Application', applicationSchema); 
