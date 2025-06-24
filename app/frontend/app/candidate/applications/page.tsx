@@ -19,9 +19,12 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  BarChart
+  BarChart,
+  Play,
+  Mic
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface Application {
   _id: string;
@@ -35,12 +38,14 @@ interface Application {
   resumeScore: number;
   appliedAt: string;
   status: 'Applied' | 'Under Review' | 'Interview Scheduled' | 'Rejected' | 'Accepted';
+  shortlisted: boolean;
 }
 
 export default function MyApplications() {
   const [candidateData, setCandidateData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -68,6 +73,32 @@ export default function MyApplications() {
         }
       })
       .catch(err => console.error("Failed to fetch applications", err));
+  };
+
+  const startInterview = async (applicationId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/interviews/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          applicationId
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast.success('Interview started successfully!');
+        router.push(`/candidate/interview/${data.interview._id}`);
+      } else {
+        toast.error(data.error || 'Failed to start interview');
+      }
+    } catch (error) {
+      console.error('Error starting interview:', error);
+      toast.error('Failed to start interview');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -113,7 +144,7 @@ export default function MyApplications() {
   const getApplicationStats = () => {
     const total = applications.length;
     const pending = applications.filter(app => ['Applied', 'Under Review'].includes(app.status)).length;
-    const interviews = applications.filter(app => app.status === 'Interview Scheduled').length;
+    const interviews = applications.filter(app => app.status === 'Interview Scheduled' || app.shortlisted).length;
     const accepted = applications.filter(app => app.status === 'Accepted').length;
     
     return { total, pending, interviews, accepted };
@@ -212,10 +243,18 @@ export default function MyApplications() {
                   <div className="flex-1 mb-4 lg:mb-0">
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="text-xl font-semibold text-gray-900 mb-1">{application.job.title}</h3>
-                      <Badge className={getStatusColor(application.status)}>
-                        {getStatusIcon(application.status)}
-                        <span className="ml-2">{application.status}</span>
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getStatusColor(application.status)}>
+                          {getStatusIcon(application.status)}
+                          <span className="ml-2">{application.status}</span>
+                        </Badge>
+                        {application.shortlisted && (
+                          <Badge className="bg-green-100 text-green-800">
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Shortlisted
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center text-gray-600 mb-4">
                       <Building className="w-4 h-4 mr-2" />
@@ -243,6 +282,16 @@ export default function MyApplications() {
                   </div>
                   <div className="flex flex-col items-end gap-4">
                     <Button variant="default">View Job</Button>
+                    {application.shortlisted && (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => startInterview(application._id)}
+                        className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                      >
+                        <Mic className="w-4 h-4 mr-2" />
+                        Start Interview
+                      </Button>
+                    )}
                     <Button variant="outline">Withdraw Application</Button>
                   </div>
                 </div>

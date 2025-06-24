@@ -10,7 +10,8 @@ import {
   PlusCircle, 
   LogOut, 
   Menu, 
-  X 
+  X,
+  Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -30,6 +31,7 @@ export default function AdminNavbar() {
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Manage Jobs', href: '/admin/manage-jobs', icon: Briefcase },
     { name: 'Post Job', href: '/admin/post-job', icon: PlusCircle },
+    { name: 'Post Interviews', href: '/admin/interview-setup', icon: Settings },
   ];
 
   return (

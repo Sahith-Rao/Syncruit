@@ -12,9 +12,11 @@ const jobSchema = new mongoose.Schema({
   benefits: { type: String },
   lastDate: { type: String },
   skillsRequired: [{ type: String }],
+  techStack: { type: String },
   postedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
   createdAt: { type: Date, default: Date.now },
-  status: { type: String, default: 'Active' }
+  status: { type: String, default: 'Active' },
+  interviewStatus: { type: String, default: 'Not Started' }
 });
 
 export default mongoose.model('Job', jobSchema); 
