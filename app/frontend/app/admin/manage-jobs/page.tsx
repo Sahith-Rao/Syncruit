@@ -31,7 +31,7 @@ interface Job {
   lastDate: string;
   createdAt: string;
   applicationCount: number;
-  status?: 'Active' | 'Closed' | 'Draft'; // Assuming status might come from backend
+  status?: 'Active' | 'Closed' | 'Draft' | 'Selection Complete'; // Add 'Selection Complete'
   interviewStatus?: string; // Add interviewStatus
 }
 
@@ -157,10 +157,10 @@ export default function ManageJobs() {
                         <p className="text-lg text-gray-700 font-medium">{job.company}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <Badge className={getStatusColor(isJobCompleted(job) ? 'Completed' : (job.status || 'Active'))}>
-                          {isJobCompleted(job) ? 'Completed' : (job.status || 'Active')}
+                        <Badge className={getStatusColor(job.status === 'Selection Complete' ? 'Selection Complete' : isJobCompleted(job) ? 'Completed' : (job.status || 'Active'))}>
+                          {job.status === 'Selection Complete' ? 'Selection Complete' : isJobCompleted(job) ? 'Completed' : (job.status || 'Active')}
                         </Badge>
-                        {job.interviewStatus && (
+                        {job.status !== 'Selection Complete' && job.interviewStatus && (
                           <Badge className="bg-purple-100 text-purple-800 mt-1">
                             Interview: {job.interviewStatus}
                           </Badge>
@@ -217,15 +217,6 @@ export default function ManageJobs() {
                         View Interview Results
                       </Button>
                     )}
-                    <Button 
-                      onClick={() => handleEditJob(job._id)}
-                      variant="outline" 
-                      size="sm"
-                      className="flex items-center"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit Job
-                    </Button>
                     <Button 
                       onClick={() => handleDeleteJob(job._id, job.title)}
                       variant="outline" 

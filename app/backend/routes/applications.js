@@ -3,6 +3,7 @@ import Application from '../models/Application.js';
 import mongoose from 'mongoose';
 import nodemailer from 'nodemailer';
 import Job from '../models/Job.js';
+import SelectedCandidate from '../models/SelectedCandidate.js';
 
 const router = express.Router();
 
@@ -144,6 +145,18 @@ router.post('/select-top', async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
+
+    // After sending emails in /select-top, update the job status
+    await Job.findByIdAndUpdate(jobId, { $set: { status: 'Selection Complete' } });
+
+    // Store selected candidate details in the SelectedCandidate collection
+    for (const app of selectedApps) {
+      await SelectedCandidate.create({
+        job: jobId,
+        candidate: app.candidate._id,
+        application: app._id
+      });
+    }
 
     res.json({ message: 'Candidates selected and emails sent.' });
   } catch (error) {

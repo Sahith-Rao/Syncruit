@@ -51,6 +51,7 @@ export default function CandidateDashboard() {
   const [isApplying, setIsApplying] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [openJobId, setOpenJobId] = useState<string | null>(null);
   const router = useRouter();
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -301,6 +302,25 @@ export default function CandidateDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {openJobId && (
+        <Dialog open={!!openJobId} onOpenChange={() => setOpenJobId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{jobs.find(job => job._id === openJobId)?.title}</DialogTitle>
+              <DialogDescription>
+                {jobs.find(job => job._id === openJobId)?.company}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mb-2 text-gray-700">
+              {jobs.find(job => job._id === openJobId)?.description || 'No description available.'}
+            </div>
+            <div className="flex gap-4 text-sm text-gray-600">
+              <span><MapPin className="inline w-4 h-4 mr-1" />{jobs.find(job => job._id === openJobId)?.location}</span>
+              <span><DollarSign className="inline w-4 h-4 mr-1" />{jobs.find(job => job._id === openJobId)?.salary}</span>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

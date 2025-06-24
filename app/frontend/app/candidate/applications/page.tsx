@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Application {
   _id: string;
@@ -34,6 +35,8 @@ interface Application {
     company: string;
     location: string;
     salary: string;
+    description: string;
+    interviewStatus?: string;
   };
   resumeScore: number;
   appliedAt: string;
@@ -48,6 +51,7 @@ export default function MyApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [openJobId, setOpenJobId] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -154,6 +158,25 @@ export default function MyApplications() {
 
   const stats = getApplicationStats();
 
+  const getCandidateStatus = (application: Application) => {
+    if (!application.shortlisted) {
+      return { label: 'Not Qualified', color: 'bg-gray-100 text-gray-800' };
+    }
+    if (!application.interviewStatus || application.interviewStatus === 'Not Started') {
+      return { label: 'Interview Starts Soon', color: 'bg-yellow-100 text-yellow-800' };
+    }
+    if (application.interviewStatus === 'Result Pending') {
+      return { label: 'Result Pending', color: 'bg-orange-100 text-orange-800' };
+    }
+    if (application.interviewStatus === 'Selected') {
+      return { label: 'Selected', color: 'bg-green-100 text-green-800' };
+    }
+    if (application.interviewStatus === 'Completed') {
+      return { label: 'Interview Completed', color: 'bg-blue-100 text-blue-800' };
+    }
+    return { label: application.status, color: getStatusColor(application.status, application.interviewStatus) };
+  };
+
   if (!candidateData) {
     return <div>Loading...</div>;
   }
@@ -246,26 +269,9 @@ export default function MyApplications() {
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="text-xl font-semibold text-gray-900 mb-1">{application.job.title}</h3>
                       <div className="flex items-center gap-2">
-                        <Badge className={getStatusColor(application.status, application.interviewStatus)}>
-                          {application.interviewStatus === 'Result Pending'
-                            ? 'Result Pending'
-                            : application.interviewStatus === 'Selected'
-                              ? 'Selected'
-                              : getStatusIcon(application.status)}
-                          <span className="ml-2">
-                            {application.interviewStatus === 'Result Pending'
-                              ? 'Result Pending'
-                              : application.interviewStatus === 'Selected'
-                                ? 'Selected'
-                                : application.status}
-                          </span>
+                        <Badge className={getCandidateStatus(application).color}>
+                          {getCandidateStatus(application).label}
                         </Badge>
-                        {application.shortlisted && (
-                          <Badge className="bg-green-100 text-green-800">
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Shortlisted
-                          </Badge>
-                        )}
                       </div>
                     </div>
                     <div className="flex items-center text-gray-600 mb-4">
@@ -286,18 +292,13 @@ export default function MyApplications() {
                         <Calendar className="w-4 h-4 mr-2 text-gray-400" />
                         <span>Applied on {format(new Date(application.appliedAt), 'MMM d, yyyy')}</span>
                       </div>
-                      <div className="flex items-center">
-                        <BarChart className="w-4 h-4 mr-2 text-gray-400" />
-                        <span>Resume Score: {application.resumeScore}</span>
-                      </div>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-4">
-                    <Button variant="default">View Job</Button>
+                    <Button variant="default" onClick={() => setOpenJobId(application.job._id)}>View Job</Button>
                     {application.shortlisted &&
-                      application.interviewStatus !== 'Result Pending' &&
-                      application.interviewStatus !== 'Completed' &&
-                      application.interviewStatus !== 'Selected' && (
+                      (application.job.interviewStatus === 'Ready' || application.job.interviewStatus === 'Interview Pending') &&
+                      (!application.interviewStatus || application.interviewStatus === 'Not Started') && (
                         <Button 
                           variant="outline" 
                           onClick={() => startInterview(application._id)}
@@ -307,7 +308,6 @@ export default function MyApplications() {
                           Start Interview
                         </Button>
                       )}
-                    <Button variant="outline">Withdraw Application</Button>
                   </div>
                 </div>
               </CardContent>
@@ -332,6 +332,26 @@ export default function MyApplications() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {openJobId && (
+          <Dialog open={!!openJobId} onOpenChange={() => setOpenJobId(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{applications.find(app => app.job._id === openJobId)?.job.title}</DialogTitle>
+                <DialogDescription>
+                  {applications.find(app => app.job._id === openJobId)?.job.company}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mb-2 text-gray-700">
+                {applications.find(app => app.job._id === openJobId)?.job.description || 'No description available.'}
+              </div>
+              <div className="flex gap-4 text-sm text-gray-600">
+                <span><MapPin className="inline w-4 h-4 mr-1" />{applications.find(app => app.job._id === openJobId)?.job.location}</span>
+                <span><DollarSign className="inline w-4 h-4 mr-1" />{applications.find(app => app.job._id === openJobId)?.job.salary}</span>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
     </div>

@@ -51,9 +51,9 @@ export default function PostInterview() {
     try {
       const response = await fetch(`${API_URL}/api/jobs`);
       const data = await response.json();
-      // Only jobs with status 'Interview Pending'
+      // Only jobs with status 'Interview Pending' and interviewStatus !== 'Ready'
       const filtered = Array.isArray(data)
-        ? data.filter((job: Job) => job.status === 'Interview Pending')
+        ? data.filter((job: Job) => job.status === 'Interview Pending' && job.interviewStatus !== 'Ready')
         : [];
       setJobs(filtered);
     } catch (error) {
