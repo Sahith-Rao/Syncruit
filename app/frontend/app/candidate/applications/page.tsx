@@ -60,7 +60,7 @@ export default function MyApplications() {
   }, [router]);
 
   const fetchApplications = (candidateId: string) => {
-    fetch(`${API_URL}/api/applications/${candidateId}`)
+    fetch(`${API_URL}/api/applications/candidate/${candidateId}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {

@@ -2,6 +2,7 @@ import express from 'express';
 import Application from '../models/Application.js';
 import mongoose from 'mongoose';
 import nodemailer from 'nodemailer';
+import Job from '../models/Job.js';
 
 const router = express.Router();
 
@@ -66,6 +67,10 @@ router.post('/shortlist', async (req, res) => {
       { _id: { $in: applicationIds }, job: jobId },
       { $set: { shortlisted: true, status: 'Shortlisted' } }
     );
+
+    // Update the job status to 'Interview Pending'
+    const updatedJob = await Job.findByIdAndUpdate(jobId, { $set: { status: 'Interview Pending' } }, { new: true });
+    console.log('Updated job after shortlisting:', updatedJob);
 
     // Fetch candidate emails
     const shortlistedApps = await Application.find({ _id: { $in: applicationIds } }).populate('candidate');

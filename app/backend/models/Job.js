@@ -13,7 +13,8 @@ const jobSchema = new mongoose.Schema({
   lastDate: { type: String },
   skillsRequired: [{ type: String }],
   postedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  status: { type: String, default: 'Active' }
 });
 
 export default mongoose.model('Job', jobSchema); 

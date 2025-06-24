@@ -78,7 +78,7 @@ export default function CandidateDashboard() {
     fetch(`${API_URL}/api/applications/candidate/${candidateId}`)
       .then(res => res.json())
       .then((applications: any[]) => {
-        const jobIds = new Set(applications.map(app => app.job._id));
+        const jobIds = new Set(applications.map(app => app.job._id.toString()));
         setAppliedJobIds(jobIds);
       })
       .catch(err => console.error('Failed to fetch applications', err));
@@ -115,6 +115,7 @@ export default function CandidateDashboard() {
       const { score, application } = await res.json();
 
       setAppliedJobIds(prev => new Set(prev).add(application.job));
+      if (candidateData?._id) fetchAppliedJobs(candidateData._id);
 
       const newApplication = {
         jobId: selectedJob._id,
@@ -140,7 +141,7 @@ export default function CandidateDashboard() {
     }
   };
 
-  const availableJobs = jobs.filter(job => !appliedJobIds.has(job._id));
+  const availableJobs = jobs.filter(job => !appliedJobIds.has(job._id.toString()));
 
   const filteredJobs = availableJobs.filter(job =>
     job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
