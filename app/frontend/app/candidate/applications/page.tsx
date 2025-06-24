@@ -39,6 +39,7 @@ interface Application {
   appliedAt: string;
   status: 'Applied' | 'Under Review' | 'Interview Scheduled' | 'Rejected' | 'Accepted';
   shortlisted: boolean;
+  interviewStatus?: string;
 }
 
 export default function MyApplications() {
@@ -101,7 +102,8 @@ export default function MyApplications() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, interviewStatus?: string) => {
+    if (interviewStatus === 'Result Pending') return 'bg-orange-100 text-orange-800';
     switch (status) {
       case 'Applied':
         return 'bg-blue-100 text-blue-800';
@@ -244,9 +246,19 @@ export default function MyApplications() {
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="text-xl font-semibold text-gray-900 mb-1">{application.job.title}</h3>
                       <div className="flex items-center gap-2">
-                        <Badge className={getStatusColor(application.status)}>
-                          {getStatusIcon(application.status)}
-                          <span className="ml-2">{application.status}</span>
+                        <Badge className={getStatusColor(application.status, application.interviewStatus)}>
+                          {application.interviewStatus === 'Result Pending'
+                            ? 'Result Pending'
+                            : application.interviewStatus === 'Selected'
+                              ? 'Selected'
+                              : getStatusIcon(application.status)}
+                          <span className="ml-2">
+                            {application.interviewStatus === 'Result Pending'
+                              ? 'Result Pending'
+                              : application.interviewStatus === 'Selected'
+                                ? 'Selected'
+                                : application.status}
+                          </span>
                         </Badge>
                         {application.shortlisted && (
                           <Badge className="bg-green-100 text-green-800">
@@ -282,16 +294,19 @@ export default function MyApplications() {
                   </div>
                   <div className="flex flex-col items-end gap-4">
                     <Button variant="default">View Job</Button>
-                    {application.shortlisted && (
-                      <Button 
-                        variant="outline" 
-                        onClick={() => startInterview(application._id)}
-                        className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
-                      >
-                        <Mic className="w-4 h-4 mr-2" />
-                        Start Interview
-                      </Button>
-                    )}
+                    {application.shortlisted &&
+                      application.interviewStatus !== 'Result Pending' &&
+                      application.interviewStatus !== 'Completed' &&
+                      application.interviewStatus !== 'Selected' && (
+                        <Button 
+                          variant="outline" 
+                          onClick={() => startInterview(application._id)}
+                          className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                        >
+                          <Mic className="w-4 h-4 mr-2" />
+                          Start Interview
+                        </Button>
+                      )}
                     <Button variant="outline">Withdraw Application</Button>
                   </div>
                 </div>

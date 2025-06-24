@@ -22,6 +22,8 @@ interface Applicant {
   resumeUrl: string;
   appliedAt: string;
   shortlisted: boolean;
+  interviewStatus?: string;
+  interviewScore?: number;
 }
 
 export default function ViewApplications() {
@@ -36,6 +38,9 @@ export default function ViewApplications() {
   const [topN, setTopN] = useState<number>(0);
   const [shortlisting, setShortlisting] = useState(false);
   const [shortlistedIds, setShortlistedIds] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'applications' | 'interviews'>('applications');
+  const [selecting, setSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -93,6 +98,39 @@ export default function ViewApplications() {
     }
   };
 
+  // For Interview Results tab, sort by interviewScore
+  const sortedInterviewApps = [...applications]
+    .filter(app => typeof app.interviewScore === 'number')
+    .sort((a, b) => (b.interviewScore || 0) - (a.interviewScore || 0));
+  const displayedInterviewApps = topN > 0 ? sortedInterviewApps.slice(0, topN) : sortedInterviewApps;
+
+  const handleSelectCandidates = async () => {
+    setSelecting(true);
+    try {
+      const applicationIds = displayedInterviewApps.map(app => app._id);
+      const res = await fetch(`${API_URL}/api/applications/select-top`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationIds, jobId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSelectedIds(applicationIds);
+        alert('Candidates selected and emails sent!');
+        // Refresh applications
+        const refreshed = await fetch(`${API_URL}/api/applications/job/${jobId}`);
+        const refreshedData = await refreshed.json();
+        if (Array.isArray(refreshedData)) setApplications(refreshedData);
+      } else {
+        alert(data.error || 'Failed to select candidates.');
+      }
+    } catch (err) {
+      alert('Failed to select candidates.');
+    } finally {
+      setSelecting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
@@ -101,101 +139,188 @@ export default function ViewApplications() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Jobs
         </Button>
-        <Card>
-          <CardHeader>
-            <CardTitle>Applications for {jobTitle || `Job ID: ${jobId}`}</CardTitle>
-            <div className="flex flex-wrap gap-4 mt-4">
-              <div>
-                <label className="mr-2 font-medium">Sort by Resume Score:</label>
-                <select
-                  value={sortOrder}
-                  onChange={e => setSortOrder(e.target.value as 'asc' | 'desc')}
-                  className="border rounded px-2 py-1"
+        <div className="mb-6 flex gap-4">
+          <Button
+            variant={activeTab === 'applications' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('applications')}
+          >
+            Applications
+          </Button>
+          <Button
+            variant={activeTab === 'interviews' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('interviews')}
+          >
+            Interview Results
+          </Button>
+        </div>
+        {activeTab === 'applications' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Applications for {jobTitle || `Job ID: ${jobId}`}</CardTitle>
+              <div className="flex flex-wrap gap-4 mt-4">
+                <div>
+                  <label className="mr-2 font-medium">Sort by Resume Score:</label>
+                  <select
+                    value={sortOrder}
+                    onChange={e => setSortOrder(e.target.value as 'asc' | 'desc')}
+                    className="border rounded px-2 py-1"
+                  >
+                    <option value="desc">High to Low</option>
+                    <option value="asc">Low to High</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mr-2 font-medium">Top N:</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={applications.length}
+                    value={topN}
+                    onChange={e => setTopN(Number(e.target.value))}
+                    className="border rounded px-2 py-1 w-20"
+                    placeholder="All"
+                  />
+                </div>
+                <Button
+                  variant="default"
+                  disabled={shortlisting || displayedApplications.length === 0}
+                  onClick={handleShortlist}
                 >
-                  <option value="desc">High to Low</option>
-                  <option value="asc">Low to High</option>
-                </select>
+                  {shortlisting ? 'Shortlisting...' : 'Shortlist'}
+                </Button>
               </div>
-              <div>
-                <label className="mr-2 font-medium">Top N:</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={applications.length}
-                  value={topN}
-                  onChange={e => setTopN(Number(e.target.value))}
-                  className="border rounded px-2 py-1 w-20"
-                  placeholder="All"
-                />
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <p>Loading applications...</p>
+              ) : displayedApplications.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Candidate</TableHead>
+                      <TableHead>Resume Score</TableHead>
+                      <TableHead>Applied On</TableHead>
+                      <TableHead>Resume</TableHead>
+                      <TableHead>Shortlisted</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayedApplications.map((app) => (
+                      <TableRow key={app._id}>
+                        <TableCell>
+                          <div className="flex items-center gap-4">
+                            <Avatar>
+                              <AvatarFallback>{app.candidate.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{app.candidate.name}</p>
+                              <p className="text-sm text-gray-500">{app.candidate.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getScoreColor(app.resumeScore)}>
+                            <Star className="w-3 h-3 mr-1" />
+                            {app.resumeScore}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{format(new Date(app.appliedAt), 'MMM d, yyyy')}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" asChild>
+                            <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              View Resume
+                            </a>
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          {shortlistedIds.includes(app._id) || app.shortlisted ? (
+                            <Badge className="bg-green-100 text-green-800">Shortlisted</Badge>
+                          ) : (
+                            <Badge className="bg-gray-100 text-gray-800">Not Shortlisted</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-center text-gray-500 py-8">No applications have been received for this job yet.</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+        {activeTab === 'interviews' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Interview Results</CardTitle>
+              <div className="flex flex-wrap gap-4 mt-4">
+                <div>
+                  <label className="mr-2 font-medium">Top N:</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={sortedInterviewApps.length}
+                    value={topN}
+                    onChange={e => setTopN(Number(e.target.value))}
+                    className="border rounded px-2 py-1 w-20"
+                    placeholder="All"
+                  />
+                </div>
+                <Button
+                  variant="default"
+                  disabled={selecting || displayedInterviewApps.length === 0}
+                  onClick={handleSelectCandidates}
+                >
+                  {selecting ? 'Selecting...' : 'Select Candidates'}
+                </Button>
               </div>
-              <Button
-                variant="default"
-                disabled={shortlisting || displayedApplications.length === 0}
-                onClick={handleShortlist}
-              >
-                {shortlisting ? 'Shortlisting...' : 'Shortlist'}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <p>Loading applications...</p>
-            ) : displayedApplications.length > 0 ? (
+            </CardHeader>
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Candidate</TableHead>
-                    <TableHead>Resume Score</TableHead>
-                    <TableHead>Applied On</TableHead>
-                    <TableHead>Resume</TableHead>
-                    <TableHead>Shortlisted</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Interview Score</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {displayedApplications.map((app) => (
+                  {displayedInterviewApps.map(app => (
                     <TableRow key={app._id}>
+                      <TableCell>{app.candidate.name}</TableCell>
+                      <TableCell>{app.candidate.email}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-4">
-                          <Avatar>
-                            <AvatarFallback>{app.candidate.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{app.candidate.name}</p>
-                            <p className="text-sm text-gray-500">{app.candidate.email}</p>
-                          </div>
-                        </div>
+                        {typeof app.interviewScore === 'number' ? (
+                          <Badge className="bg-blue-100 text-blue-800">{app.interviewScore}</Badge>
+                        ) : (
+                          <Badge className="bg-gray-100 text-gray-800">N/A</Badge>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getScoreColor(app.resumeScore)}>
-                          <Star className="w-3 h-3 mr-1" />
-                          {app.resumeScore}
+                        <Badge className={app.interviewStatus === 'Selected' ? 'bg-green-100 text-green-800' : app.interviewStatus === 'Result Pending' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'}>
+                          {app.interviewStatus || 'N/A'}
                         </Badge>
                       </TableCell>
-                      <TableCell>{format(new Date(app.appliedAt), 'MMM d, yyyy')}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            View Resume
-                          </a>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/admin/interview-result/${app._id}`)}
+                          disabled={!app.interviewScore}
+                        >
+                          View Details
                         </Button>
-                      </TableCell>
-                      <TableCell>
-                        {shortlistedIds.includes(app._id) || app.shortlisted ? (
-                          <Badge className="bg-green-100 text-green-800">Shortlisted</Badge>
-                        ) : (
-                          <Badge className="bg-gray-100 text-gray-800">Not Shortlisted</Badge>
-                        )}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            ) : (
-              <p className="text-center text-gray-500 py-8">No applications have been received for this job yet.</p>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

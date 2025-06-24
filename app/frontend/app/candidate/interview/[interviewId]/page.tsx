@@ -104,10 +104,11 @@ export default function InterviewPage() {
   };
 
   const startSpeechRecognition = () => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    // Type guards for browser compatibility
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
-      
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
@@ -117,7 +118,7 @@ export default function InterviewPage() {
         setUserAnswer('');
       };
 
-      recognition.onresult = (event) => {
+      recognition.onresult = (event: any) => {
         let finalTranscript = '';
         let interimTranscript = '';
 
@@ -133,7 +134,7 @@ export default function InterviewPage() {
         setUserAnswer(finalTranscript + interimTranscript);
       };
 
-      recognition.onerror = (event) => {
+      recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsRecording(false);
         toast.error('Speech recognition error');
@@ -291,88 +292,8 @@ export default function InterviewPage() {
               Back to Applications
             </Button>
             <h1 className="text-3xl font-bold text-gray-900">Interview Completed!</h1>
-            <p className="text-gray-600 mt-2">Your interview results and feedback</p>
+            <p className="text-gray-600 mt-2">Thank you for completing your interview. Your responses have been submitted for review. Please check your application status for results.</p>
           </div>
-
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>{interview.job.title}</span>
-                <Badge className="bg-green-100 text-green-800">
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Completed
-                </Badge>
-              </CardTitle>
-              <CardDescription>{interview.job.company}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4 mb-4">
-                <div className="text-2xl font-bold text-gray-900">
-                  Overall Rating: {interview.overallRating}/10
-                </div>
-                <div className="flex">
-                  {[...Array(10)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`w-5 h-5 ${i < Math.round(interview.overallRating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-                    />
-                  ))}
-                </div>
-              </div>
-              {interview.feedback && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold mb-2">Overall Feedback:</h3>
-                  <p className="text-gray-700">{interview.feedback}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Tabs defaultValue="0" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="0">Question 1</TabsTrigger>
-              <TabsTrigger value="1">Question 2</TabsTrigger>
-            </TabsList>
-            
-            {responses.map((response, index) => (
-              <TabsContent key={index} value={index.toString()}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Question {index + 1}</span>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-blue-100 text-blue-800">
-                          Rating: {response.rating}/10
-                        </Badge>
-                        <div className="flex">
-                          {[...Array(10)].map((_, i) => (
-                            <Star 
-                              key={i} 
-                              className={`w-4 h-4 ${i < response.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold mb-2">Question:</h4>
-                      <p className="text-gray-700">{response.question}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Your Answer:</h4>
-                      <p className="text-gray-700 bg-gray-50 p-3 rounded">{response.userAnswer}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Feedback:</h4>
-                      <p className="text-gray-700 bg-blue-50 p-3 rounded">{response.feedback}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            ))}
-          </Tabs>
         </div>
       </div>
     );

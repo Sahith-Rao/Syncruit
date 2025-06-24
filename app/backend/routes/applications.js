@@ -17,13 +17,21 @@ router.get('/job/:jobId', async (req, res) => {
 
     const applications = await Application.find({ job: jobId })
       .populate('candidate') // This will replace the 'candidate' ObjectId with the full candidate document
-      .sort({ resumeScore: -1 }); // Sort by score descending
+      .sort({ resumeScore: -1 })
+      .lean();
 
     if (!applications) {
       return res.status(404).json({ message: 'No applications found for this job.' });
     }
 
-    res.json(applications);
+    // Add interviewStatus and interviewScore to each application
+    const appsWithInterview = applications.map(app => ({
+      ...app,
+      interviewStatus: app.interviewStatus || 'Not Started',
+      interviewScore: app.interviewScore || null
+    }));
+
+    res.json(appsWithInterview);
   } catch (error) {
     console.error('Error fetching job applications:', error);
     res.status(500).json({ error: 'Server error while fetching job applications.' });
@@ -98,6 +106,49 @@ router.post('/shortlist', async (req, res) => {
   } catch (error) {
     console.error('Error shortlisting applicants:', error);
     res.status(500).json({ error: 'Failed to shortlist applicants and send emails.' });
+  }
+});
+
+// POST /api/applications/select-top
+router.post('/select-top', async (req, res) => {
+  try {
+    const { jobId, applicationIds } = req.body;
+    if (!jobId || !Array.isArray(applicationIds) || applicationIds.length === 0) {
+      return res.status(400).json({ error: 'jobId and applicationIds (array) are required.' });
+    }
+
+    // Update selected applications
+    await Application.updateMany(
+      { _id: { $in: applicationIds }, job: jobId },
+      { $set: { interviewStatus: 'Selected' } }
+    );
+
+    // Fetch candidate emails
+    const selectedApps = await Application.find({ _id: { $in: applicationIds } }).populate('candidate');
+    const emails = selectedApps.map(app => app.candidate.email);
+
+    // Send emails (using nodemailer, configure with your SMTP or a test account)
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: emails,
+      subject: 'Congratulations! You have been selected',
+      text: 'You have been selected for the next stage. We will contact you soon.'
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ message: 'Candidates selected and emails sent.' });
+  } catch (error) {
+    console.error('Error selecting candidates:', error);
+    res.status(500).json({ error: 'Failed to select candidates and send emails.' });
   }
 });
 

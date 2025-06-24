@@ -32,6 +32,7 @@ interface Job {
   createdAt: string;
   applicationCount: number;
   status?: 'Active' | 'Closed' | 'Draft'; // Assuming status might come from backend
+  interviewStatus?: string; // Add interviewStatus
 }
 
 export default function ManageJobs() {
@@ -103,6 +104,11 @@ export default function ManageJobs() {
     }
   };
 
+  const isJobCompleted = (job: any) => {
+    // If any application for this job has interviewStatus 'Selected', mark as Completed
+    return job.applications && job.applications.some((app: any) => app.interviewStatus === 'Selected');
+  };
+
   if (!adminData) {
     return <div>Loading...</div>;
   }
@@ -150,9 +156,16 @@ export default function ManageJobs() {
                         <h3 className="text-xl font-semibold text-gray-900 mb-1">{job.title}</h3>
                         <p className="text-lg text-gray-700 font-medium">{job.company}</p>
                       </div>
-                      <Badge className={getStatusColor(job.status || 'Active')}>
-                        {job.status || 'Active'}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge className={getStatusColor(isJobCompleted(job) ? 'Completed' : (job.status || 'Active'))}>
+                          {isJobCompleted(job) ? 'Completed' : (job.status || 'Active')}
+                        </Badge>
+                        {job.interviewStatus && (
+                          <Badge className="bg-purple-100 text-purple-800 mt-1">
+                            Interview: {job.interviewStatus}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
@@ -193,6 +206,17 @@ export default function ManageJobs() {
                       <Eye className="w-4 h-4 mr-2" />
                       View Applications ({job.applicationCount})
                     </Button>
+                    {job.interviewStatus === 'Interview Pending' && (
+                      <Button
+                        onClick={() => router.push(`/admin/manage-jobs/${job._id}?tab=interviews`)}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Interview Results
+                      </Button>
+                    )}
                     <Button 
                       onClick={() => handleEditJob(job._id)}
                       variant="outline" 

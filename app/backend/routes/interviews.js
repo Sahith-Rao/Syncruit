@@ -14,18 +14,22 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // Helper function to clean AI response
 const cleanJsonResponse = (responseText) => {
   let cleanText = responseText.trim();
-  cleanText = cleanText.replace(/(json|```|`)/g, "");
-  
+  cleanText = cleanText.replace(/(json|```|`)/gi, "");
+  // Remove all control characters except for \n, \r, \t
+  cleanText = cleanText.replace(/[\u0000-\u0019]+/g, "");
+  // Replace unescaped newlines in string values with spaces
+  cleanText = cleanText.replace(/:(\s*)"([^"]*?)\n([^"]*?)"/g, (match, p1, p2, p3) => `:${p1}"${p2} ${p3}"`);
+  // Try to extract the first [...] block
   const jsonArrayMatch = cleanText.match(/\[.*\]/s);
   if (jsonArrayMatch) {
     cleanText = jsonArrayMatch[0];
   } else {
     throw new Error("No JSON array found in response");
   }
-  
   try {
     return JSON.parse(cleanText);
   } catch (error) {
+    console.error('Failed to parse cleaned Gemini JSON:', cleanText);
     throw new Error("Invalid JSON format: " + error.message);
   }
 };
@@ -36,12 +40,15 @@ const cleanJsonObjectResponse = (responseText) => {
   cleanText = cleanText.replace(/(json|```|`)/gi, "");
   // Remove all control characters except for \n, \r, \t
   cleanText = cleanText.replace(/[\u0000-\u0019]+/g, "");
+  // Replace unescaped newlines in string values with spaces
+  cleanText = cleanText.replace(/:(\s*)"([^"]*?)\n([^"]*?)"/g, (match, p1, p2, p3) => `:${p1}"${p2} ${p3}"`);
   // Try to extract the first {...} block
   const match = cleanText.match(/{[\s\S]*}/);
   if (match) cleanText = match[0];
   try {
     return JSON.parse(cleanText);
   } catch (error) {
+    console.error('Failed to parse cleaned Gemini JSON object:', cleanText);
     throw new Error("Invalid JSON format: " + error.message);
   }
 };
@@ -338,6 +345,17 @@ router.post('/complete', async (req, res) => {
       },
       { new: true }
     );
+
+    // Update the candidate's application: set interviewStatus to 'Result Pending' and store score
+    if (interview && interview.application) {
+      await Application.findByIdAndUpdate(
+        interview.application,
+        {
+          interviewStatus: 'Result Pending',
+          interviewScore: Math.round(overallRating * 10) / 10
+        }
+      );
+    }
 
     res.json({ 
       message: 'Interview completed',
