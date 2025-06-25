@@ -93,7 +93,7 @@ router.get('/candidate', async (req, res) => {
     
     const jobs = await Job.find({
       deadline: { $gt: now },
-      status: 'Active'
+      status: 'Applications Open'
     }).sort({ createdAt: -1 });
 
     res.json(jobs);
@@ -113,6 +113,13 @@ router.get('/check-deadlines', async (req, res) => {
       deadline: { $lt: now },
       status: 'Applications Open'
     });
+
+    console.log('Jobs found for closing:', expiredJobs.map(j => ({
+      _id: j._id,
+      title: j.title,
+      deadline: j.deadline,
+      status: j.status
+    })));
 
     if (expiredJobs.length === 0) {
       return res.json({ message: 'No jobs past deadline found', closedCount: 0 });

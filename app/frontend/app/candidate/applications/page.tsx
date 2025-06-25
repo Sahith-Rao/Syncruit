@@ -46,6 +46,32 @@ interface Application {
   interviewStatus?: string;
 }
 
+// Exported utility for use in dashboard and applications page
+export function getCandidateStats(applications: Application[]) {
+  // Total applications
+  const total = applications.length;
+
+  // Pending review: Applied, Shortlisted, Reviewing
+  const pending = applications.filter(app =>
+    app.status === 'Applied' || app.status === 'Shortlisted' || app.status === 'Reviewing'
+  ).length;
+
+  // Interviews: where Start Interview button would be visible
+  const interviews = applications.filter(app =>
+    app.shortlisted &&
+    (app.job.interviewStatus === 'Ready' || app.job.status === 'Interviews Open') &&
+    (!app.interviewStatus || app.interviewStatus === 'Not Started') &&
+    app.status !== 'Reviewing' &&
+    app.status !== 'Not Selected' &&
+    app.status !== 'Interview Expired'
+  ).length;
+
+  // Accepted: Selected
+  const accepted = applications.filter(app => app.status === 'Selected').length;
+
+  return { total, pending, interviews, accepted };
+}
+
 export default function MyApplications() {
   const [candidateData, setCandidateData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -155,17 +181,7 @@ export default function MyApplications() {
     app.job.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getApplicationStats = () => {
-    const total = applications.length;
-    const applied = applications.filter(app => app.status === 'Applied').length;
-    const shortlisted = applications.filter(app => app.status === 'Shortlisted').length;
-    const reviewing = applications.filter(app => app.status === 'Reviewing').length;
-    const selected = applications.filter(app => app.status === 'Selected').length;
-    
-    return { total, applied, shortlisted, reviewing, selected };
-  };
-
-  const stats = getApplicationStats();
+  const stats = getCandidateStats(applications);
 
   const getCandidateStatus = (application: Application) => {
     return { 
@@ -207,7 +223,7 @@ export default function MyApplications() {
               <Clock className="h-4 w-4 opacity-90" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.applied}</div>
+              <div className="text-2xl font-bold">{stats.pending}</div>
               <p className="text-xs opacity-90">Awaiting response</p>
             </CardContent>
           </Card>
@@ -218,7 +234,7 @@ export default function MyApplications() {
               <Calendar className="h-4 w-4 opacity-90" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.shortlisted}</div>
+              <div className="text-2xl font-bold">{stats.interviews}</div>
               <p className="text-xs opacity-90">Scheduled</p>
             </CardContent>
           </Card>
@@ -229,7 +245,7 @@ export default function MyApplications() {
               <CheckCircle className="h-4 w-4 opacity-90" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.selected}</div>
+              <div className="text-2xl font-bold">{stats.accepted}</div>
               <p className="text-xs opacity-90">Job offers</p>
             </CardContent>
           </Card>
@@ -297,7 +313,8 @@ export default function MyApplications() {
                       (application.job.interviewStatus === 'Ready' || application.job.status === 'Interviews Open') &&
                       (!application.interviewStatus || application.interviewStatus === 'Not Started') &&
                       application.status !== 'Reviewing' &&
-                      application.status !== 'Not Selected' && (
+                      application.status !== 'Not Selected' &&
+                      application.status !== 'Interview Expired' && (
                         <Button 
                           variant="outline" 
                           onClick={() => startInterview(application._id)}

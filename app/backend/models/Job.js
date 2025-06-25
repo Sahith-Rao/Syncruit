@@ -18,7 +18,8 @@ const jobSchema = new mongoose.Schema({
     default: 'Applications Open',
     enum: ['Applications Open', 'Applications Closed', 'Shortlisted, Interview Pending', 'Interviews Open', 'Interviews Closed', 'Selection Complete']
   },
-  interviewStatus: { type: String, default: 'Not Started' }
+  interviewStatus: { type: String, default: 'Not Started' },
+  interviewDeadline: { type: Date }, // Deadline for interview completion, set by admin
 });
 
 export default mongoose.model('Job', jobSchema); 

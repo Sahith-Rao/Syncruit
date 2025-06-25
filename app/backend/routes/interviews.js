@@ -119,13 +119,14 @@ router.post('/setup', async (req, res) => {
       return res.status(400).json({ error: 'No shortlisted candidates found for this job' });
     }
 
-    // Update job with tech stack and interview status
+    // Update job with tech stack, interview status, and interview deadline
     const updatedJob = await Job.findByIdAndUpdate(
       jobId,
       { 
         techStack: techStack.trim(),
         interviewStatus: 'Ready',
-        status: 'Interviews Open'
+        status: 'Interviews Open',
+        interviewDeadline: new Date(deadline)
       },
       { new: true }
     );
@@ -216,9 +217,14 @@ router.post('/start', async (req, res) => {
       // Generate questions for this specific job
       const questions = await generateQuestions(application.job);
       
-      // Get interview deadline from job or set default (7 days from now)
-      const interviewDeadline = new Date();
-      interviewDeadline.setDate(interviewDeadline.getDate() + 7);
+      // Use the job's interviewDeadline if set, otherwise default to 7 days from now
+      let interviewDeadline;
+      if (application.job.interviewDeadline) {
+        interviewDeadline = new Date(application.job.interviewDeadline);
+      } else {
+        interviewDeadline = new Date();
+        interviewDeadline.setDate(interviewDeadline.getDate() + 7);
+      }
       
       // Create new interview
       interview = new Interview({
@@ -419,13 +425,8 @@ router.get('/check-expired', async (req, res) => {
       status: { $ne: 'Completed' }
     });
 
-    if (expiredInterviews.length === 0) {
-      return res.json({ message: 'No expired interviews found', expiredCount: 0 });
-    }
-
     // Update application statuses for expired interviews
     const applicationIds = expiredInterviews.map(interview => interview.application);
-    
     const updateResult = await Application.updateMany(
       { _id: { $in: applicationIds } },
       { $set: { status: 'Interview Expired' } }
@@ -437,10 +438,34 @@ router.get('/check-expired', async (req, res) => {
       { $set: { status: 'Expired' } }
     );
 
+    // --- NEW LOGIC: Expire applications for shortlisted candidates who never started interview ---
+    // Find jobs with interviewDeadline in the past and status 'Interviews Open' or 'Shortlisted, Interview Pending'
+    const expiredJobs = await Job.find({
+      interviewDeadline: { $lt: now },
+      status: { $in: ['Interviews Open', 'Shortlisted, Interview Pending'] }
+    });
+    let additionallyExpired = 0;
+    for (const job of expiredJobs) {
+      // Find shortlisted applications for this job that are not already expired/selected/not selected
+      const apps = await Application.find({
+        job: job._id,
+        shortlisted: true,
+        status: { $nin: ['Selected', 'Not Selected', 'Interview Expired'] }
+      });
+      for (const app of apps) {
+        // Check if an interview exists for this application
+        const interviewExists = await Interview.exists({ application: app._id });
+        if (!interviewExists) {
+          await Application.findByIdAndUpdate(app._id, { status: 'Interview Expired' });
+          additionallyExpired++;
+        }
+      }
+    }
+
     res.json({ 
       message: 'Expired interviews processed',
       expiredCount: expiredInterviews.length,
-      updatedApplications: updateResult.modifiedCount
+      additionallyExpired
     });
   } catch (error) {
     console.error('Error checking expired interviews:', error);

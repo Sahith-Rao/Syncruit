@@ -15,7 +15,10 @@ import {
   Briefcase,
   Filter,
   Heart,
-  ExternalLink
+  ExternalLink,
+  FileText,
+  Clock,
+  CheckCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -26,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { getCandidateStats } from '../applications/page';
 
 interface Job {
   _id: string;
@@ -43,6 +47,25 @@ interface Job {
   createdAt?: string;
 }
 
+interface Application {
+  _id: string;
+  job: {
+    _id: string;
+    title: string;
+    company: string;
+    location: string;
+    salary: string;
+    description: string;
+    interviewStatus?: string;
+    status?: string;
+  };
+  resumeScore: number;
+  appliedAt: string;
+  status: 'Applied' | 'Shortlisted' | 'Not Qualified' | 'Reviewing' | 'Interview Expired' | 'Selected' | 'Not Selected';
+  shortlisted: boolean;
+  interviewStatus?: string;
+}
+
 export default function CandidateDashboard() {
   const [candidateData, setCandidateData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +75,7 @@ export default function CandidateDashboard() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [openJobId, setOpenJobId] = useState<string | null>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
   const router = useRouter();
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -65,6 +89,7 @@ export default function CandidateDashboard() {
     }
     const parsedData = JSON.parse(storedCandidateData);
     setCandidateData(parsedData);
+    fetchApplications(parsedData._id);
     fetchAppliedJobs(parsedData._id);
   }, [router]);
 
@@ -74,6 +99,15 @@ export default function CandidateDashboard() {
       .then(data => setJobs(data))
       .catch(err => console.error(err));
   }, []);
+
+  const fetchApplications = (candidateId: string) => {
+    fetch(`${API_URL}/api/applications/candidate/${candidateId}`)
+      .then(res => res.json())
+      .then((data: Application[]) => {
+        if (Array.isArray(data)) setApplications(data);
+      })
+      .catch(err => console.error('Failed to fetch applications', err));
+  };
 
   const fetchAppliedJobs = (candidateId: string) => {
     fetch(`${API_URL}/api/applications/candidate/${candidateId}`)
@@ -150,6 +184,8 @@ export default function CandidateDashboard() {
     job.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const stats = getCandidateStats(applications);
+
   if (!candidateData) {
     return <div>Loading...</div>;
   }
@@ -163,6 +199,49 @@ export default function CandidateDashboard() {
             Welcome back, {candidateData.firstName}!
           </h1>
           <p className="text-gray-600 mt-2">Discover your next career opportunity</p>
+        </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium opacity-90">Total Applications</CardTitle>
+              <FileText className="h-4 w-4 opacity-90" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
+              <p className="text-xs opacity-90">Jobs applied to</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium opacity-90">Pending Review</CardTitle>
+              <Clock className="h-4 w-4 opacity-90" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.pending}</div>
+              <p className="text-xs opacity-90">Awaiting response</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium opacity-90">Interviews</CardTitle>
+              <Calendar className="h-4 w-4 opacity-90" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.interviews}</div>
+              <p className="text-xs opacity-90">Scheduled</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium opacity-90">Accepted</CardTitle>
+              <CheckCircle className="h-4 w-4 opacity-90" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.accepted}</div>
+              <p className="text-xs opacity-90">Job offers</p>
+            </CardContent>
+          </Card>
         </div>
         {/* Search and Filter */}
         <Card className="mb-8">

@@ -163,14 +163,9 @@ export default function ManageJobs() {
                         <p className="text-lg text-gray-700 font-medium">{job.company}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <Badge className={getStatusColor(job.status === 'Selection Complete' ? 'Selection Complete' : isJobCompleted(job) ? 'Completed' : (job.status || 'Applications Open'))}>
-                          {job.status === 'Selection Complete' ? 'Selection Complete' : isJobCompleted(job) ? 'Completed' : (job.status || 'Applications Open')}
+                        <Badge className={getStatusColor(job.status || 'Applications Open')}>
+                          {job.status || 'Applications Open'}
                         </Badge>
-                        {job.status !== 'Selection Complete' && job.interviewStatus && (
-                          <Badge className="bg-purple-100 text-purple-800 mt-1">
-                            Interview: {job.interviewStatus}
-                          </Badge>
-                        )}
                       </div>
                     </div>
                     
@@ -211,26 +206,6 @@ export default function ManageJobs() {
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       View Applications ({job.applicationCount})
-                    </Button>
-                    {job.status === 'Interviews Open' && (
-                      <Button
-                        onClick={() => router.push(`/admin/manage-jobs/${job._id}?tab=interviews`)}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        View Interview Results
-                      </Button>
-                    )}
-                    <Button 
-                      onClick={() => handleDeleteJob(job._id, job.title)}
-                      variant="outline" 
-                      size="sm"
-                      className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
                     </Button>
                   </div>
                 </div>
