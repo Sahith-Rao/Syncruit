@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Briefcase, Users, FileText, TrendingUp, Eye, MapPin, DollarSign, Clock, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { format, differenceInDays, parseISO } from 'date-fns';
 
 interface Job {
   id: number;
@@ -60,44 +61,6 @@ export default function AdminDashboard() {
 
   const totalApplications = jobs.reduce((sum, job) => sum + (job.applicationCount || 0), 0);
   const activeJobs = jobs.filter(job => job.status === 'Applications Open').length;
-
-  const checkExpiredInterviews = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/interviews/check-expired');
-      const data = await response.json();
-      
-      if (response.ok) {
-        if (data.expiredCount > 0) {
-          toast.success(`Processed ${data.expiredCount} expired interviews`);
-        } else {
-          toast.info('No expired interviews found');
-        }
-      } else {
-        toast.error('Failed to check expired interviews');
-      }
-    } catch (error) {
-      toast.error('Error checking expired interviews');
-    }
-  };
-
-  const checkJobDeadlines = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/jobs/check-deadlines');
-      const data = await response.json();
-      
-      if (response.ok) {
-        if (data.closedCount > 0) {
-          toast.success(`Closed ${data.closedCount} job applications`);
-        } else {
-          toast.info('No jobs past deadline found');
-        }
-      } else {
-        toast.error('Failed to check job deadlines');
-      }
-    } catch (error) {
-      toast.error('Error checking job deadlines');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -158,111 +121,120 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Recent Applications */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Jobs Needing Attention & Top Performing Jobs */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Jobs Needing Attention Card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <FileText className="w-5 h-5 mr-2 text-blue-600" />
-                Recent Applications
+                <AlertTriangle className="w-5 h-5 mr-2 text-orange-600" />
+                Jobs Needing Attention
               </CardTitle>
-              <CardDescription>Latest applications received</CardDescription>
+              <CardDescription>Jobs that require your action</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {jobs.slice(0, 3).map((job) => (
-                  <div key={job.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">{job.title}</p>
-                      <p className="text-sm text-gray-600">{job.company}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-blue-600">{job.applications} applications</p>
-                      <p className="text-xs text-gray-500">Posted {job.postedDate}</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {(() => {
+                  // Find jobs with pending applications, no applications, or interviews to review
+                  const jobsWithPending = jobs.filter((job: any) =>
+                    Array.isArray(job.applications) && job.applications.some((app: any) => app.status === 'Applied' || app.status === 'Reviewing')
+                  );
+                  const jobsWithNoApps = jobs.filter((job: any) => (job.applicationCount || 0) === 0);
+                  const jobsWithInterviewsToReview = jobs.filter((job: any) =>
+                    Array.isArray(job.applications) && job.applications.some((app: any) =>
+                      typeof app.interviewScore === 'number' && (app.status !== 'Selected' && app.status !== 'Not Selected')
+                    )
+                  );
+                  // Merge and deduplicate jobs
+                  const jobsNeedingAttention = [
+                    ...jobsWithPending.map((job: any) => ({ ...job, attention: 'Pending Applications' as const })),
+                    ...jobsWithNoApps.map((job: any) => ({ ...job, attention: 'No Applications' as const })),
+                    ...jobsWithInterviewsToReview.map((job: any) => ({ ...job, attention: 'Interviews to Review' as const })),
+                  ];
+                  // Deduplicate by job._id, but keep the highest priority attention
+                  const uniqueJobs: Record<string, any> = {};
+                  for (const job of jobsNeedingAttention) {
+                    if (!uniqueJobs[job._id]) {
+                      uniqueJobs[job._id] = job;
+                    } else {
+                      // Priority: Pending Applications > Interviews to Review > No Applications
+                      const priority = {
+                        'Pending Applications': 3,
+                        'Interviews to Review': 2,
+                        'No Applications': 1,
+                      } as const;
+                      if (
+                        priority[job.attention as keyof typeof priority] >
+                        priority[uniqueJobs[job._id].attention as keyof typeof priority]
+                      ) {
+                        uniqueJobs[job._id] = job;
+                      }
+                    }
+                  }
+                  const jobsList = Object.values(uniqueJobs);
+                  if (jobsList.length === 0) {
+                    return <div className="text-gray-500 text-sm">No jobs need your attention right now.</div>;
+                  }
+                  return jobsList.map((job: any) => {
+                    const attention: 'Pending Applications' | 'No Applications' | 'Interviews to Review' = job.attention;
+                    return (
+                      <div key={job._id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div>
+                          <span className="font-medium text-gray-900">{job.title}</span>
+                          <span className="ml-2 text-xs text-gray-500">({job.company})</span>
+                        </div>
+                        <div className="text-right">
+                          {attention === 'Pending Applications' && (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold bg-orange-100 text-orange-800 rounded">Pending Applications</span>
+                          )}
+                          {attention === 'No Applications' && (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold bg-gray-200 text-gray-700 rounded">No Applications</span>
+                          )}
+                          {attention === 'Interviews to Review' && (
+                            <span className="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded">Interviews to Review</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
-              <Button variant="outline" className="w-full mt-4">
-                <Eye className="w-4 h-4 mr-2" />
-                View All Applications
-              </Button>
             </CardContent>
           </Card>
 
+          {/* Top Performing Jobs Card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Briefcase className="w-5 h-5 mr-2 text-purple-600" />
                 Top Performing Jobs
               </CardTitle>
-              <CardDescription>Jobs with most applications</CardDescription>
+              <CardDescription>Jobs with the most applications</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {jobs.sort((a, b) => b.applications - a.applications).map((job, index) => (
-                  <div key={job.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white mr-3 ${
-                        index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-orange-400'
-                      }`}>
-                        {index + 1}
-                      </div>
+              <div className="space-y-3">
+                {jobs
+                  .filter((job: any) => job.applicationCount > 0)
+                  .sort((a: any, b: any) => (b.applicationCount || 0) - (a.applicationCount || 0))
+                  .slice(0, 5)
+                  .map((job: any, index: number) => (
+                    <div key={job._id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                       <div>
-                        <p className="font-medium text-gray-900">{job.title}</p>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {job.location}
-                        </div>
+                        <span className="font-medium text-gray-900">{job.title}</span>
+                        <span className="ml-2 text-xs text-gray-500">({job.company})</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-semibold text-blue-700">{job.applicationCount} applications</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-green-600">{job.applications} apps</p>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <DollarSign className="w-3 h-3 mr-1" />
-                        {job.salary}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                {jobs.filter((job: any) => job.applicationCount > 0).length === 0 && (
+                  <div className="text-gray-500 text-sm">No jobs with applications yet.</div>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* Utility Section */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <AlertTriangle className="w-5 h-5 mr-2 text-orange-600" />
-              System Utilities
-            </CardTitle>
-            <CardDescription>Admin tools for system maintenance</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
-              <Button 
-                variant="outline" 
-                onClick={checkExpiredInterviews}
-                className="flex items-center"
-              >
-                <Clock className="w-4 h-4 mr-2" />
-                Check Expired Interviews
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={checkJobDeadlines}
-                className="flex items-center"
-              >
-                <Clock className="w-4 h-4 mr-2" />
-                Check Job Deadlines
-              </Button>
-              <p className="text-sm text-gray-600 mt-2">
-                Manually trigger the check for expired interviews. This normally runs automatically every hour.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

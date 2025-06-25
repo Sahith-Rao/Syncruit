@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/jobs - Get all jobs, or jobs for a specific admin with application counts
+// GET /api/jobs - Get all jobs, or jobs for a specific admin with application counts and application details for funnel
 router.get('/', async (req, res) => {
   try {
     const { adminId } = req.query;
@@ -60,10 +60,13 @@ router.get('/', async (req, res) => {
       { $match: matchStage },
       {
         $lookup: {
-          from: 'applications', // the name of the applications collection
+          from: 'applications',
           localField: '_id',
           foreignField: 'job',
-          as: 'applications'
+          as: 'applications',
+          pipeline: [
+            { $project: { status: 1, interviewScore: 1 } }
+          ]
         }
       },
       {
@@ -73,7 +76,23 @@ router.get('/', async (req, res) => {
       },
       {
         $project: {
-          applications: 0 // Exclude the applications array from the final output
+          applications: 1,
+          applicationCount: 1,
+          title: 1,
+          company: 1,
+          location: 1,
+          salary: 1,
+          jobType: 1,
+          experience: 1,
+          description: 1,
+          deadline: 1,
+          skillsRequired: 1,
+          techStack: 1,
+          postedBy: 1,
+          createdAt: 1,
+          status: 1,
+          interviewStatus: 1,
+          interviewDeadline: 1
         }
       },
       { $sort: { createdAt: -1 } }
@@ -100,44 +119,6 @@ router.get('/candidate', async (req, res) => {
   } catch (error) {
     console.error('Error fetching candidate jobs:', error);
     res.status(500).json({ error: 'Failed to fetch jobs' });
-  }
-});
-
-// GET /api/jobs/check-deadlines - Manually trigger job deadline check (for testing)
-router.get('/check-deadlines', async (req, res) => {
-  try {
-    const now = new Date();
-    
-    // Find all jobs that are past deadline and still open for applications
-    const expiredJobs = await Job.find({
-      deadline: { $lt: now },
-      status: 'Applications Open'
-    });
-
-    console.log('Jobs found for closing:', expiredJobs.map(j => ({
-      _id: j._id,
-      title: j.title,
-      deadline: j.deadline,
-      status: j.status
-    })));
-
-    if (expiredJobs.length === 0) {
-      return res.json({ message: 'No jobs past deadline found', closedCount: 0 });
-    }
-
-    // Update job status to 'Applications Closed'
-    const updateResult = await Job.updateMany(
-      { _id: { $in: expiredJobs.map(job => job._id) } },
-      { $set: { status: 'Applications Closed' } }
-    );
-
-    res.json({ 
-      message: 'Job applications closed',
-      closedCount: updateResult.modifiedCount
-    });
-  } catch (error) {
-    console.error('Error checking job deadlines:', error);
-    res.status(500).json({ error: 'Failed to check job deadlines' });
   }
 });
 
