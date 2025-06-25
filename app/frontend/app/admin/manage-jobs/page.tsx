@@ -185,7 +185,7 @@ export default function ManageJobs() {
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
               >
-                <option value="">Status</option>
+                <option value="">Filter by Status</option>
                 <option value="Applications Open">Applications Open</option>
                 <option value="Applications Closed">Applications Closed</option>
                 <option value="Shortlisted, Interview Pending">Shortlisted, Interview Pending</option>
