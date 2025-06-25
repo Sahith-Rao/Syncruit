@@ -66,7 +66,7 @@ router.get('/candidate/:candidateId', async (req, res) => {
 // POST /api/applications/shortlist - Shortlist applicants and send emails
 router.post('/shortlist', async (req, res) => {
   try {
-    const { applicationIds, jobId } = req.body;
+    const { applicationIds, jobId, emailSubject, emailBody } = req.body;
     if (!jobId) {
       return res.status(400).json({ error: 'jobId is required.' });
     }
@@ -118,8 +118,8 @@ router.post('/shortlist', async (req, res) => {
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: emails,
-      subject: 'You have been shortlisted!',
-      text: 'Congratulations! You have been shortlisted for the next round. We will contact you soon.'
+      subject: emailSubject || 'You have been shortlisted!',
+      text: emailBody || 'Congratulations! You have been shortlisted for the next round. We will contact you soon.'
     };
 
     await transporter.sendMail(mailOptions);
@@ -134,7 +134,7 @@ router.post('/shortlist', async (req, res) => {
 // POST /api/applications/select-top
 router.post('/select-top', async (req, res) => {
   try {
-    const { jobId, applicationIds } = req.body;
+    const { jobId, applicationIds, emailSubject, emailBody } = req.body;
     if (!jobId || !Array.isArray(applicationIds)) {
       return res.status(400).json({ error: 'jobId and applicationIds (array) are required.' });
     }
@@ -178,8 +178,8 @@ router.post('/select-top', async (req, res) => {
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: emails,
-      subject: 'Congratulations! You have been selected',
-      text: 'You have been selected for the next stage. We will contact you soon.'
+      subject: emailSubject || 'Congratulations! You have been selected',
+      text: emailBody || 'You have been selected for the next stage. We will contact you soon.'
     };
 
     await transporter.sendMail(mailOptions);

@@ -10,6 +10,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ExternalLink, Mail, User, Star } from 'lucide-react';
 import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Applicant {
   _id: string;
@@ -41,6 +44,11 @@ export default function ViewApplications() {
   const [activeTab, setActiveTab] = useState<'applications' | 'interviews'>('applications');
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [emailDialogOpen, setEmailDialogOpen] = useState<null | 'shortlist' | 'select'>(null);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [pendingShortlist, setPendingShortlist] = useState<string[]>([]);
+  const [pendingSelect, setPendingSelect] = useState<string[]>([]);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -75,14 +83,30 @@ export default function ViewApplications() {
   // Top N logic
   const displayedApplications = topN > 0 ? sortedApplications.slice(0, topN) : sortedApplications;
 
-  const handleShortlist = async () => {
+  const openShortlistDialog = () => {
+    const applicationIds = topN === 0 ? [] : displayedApplications.map(app => app._id);
+    setPendingShortlist(applicationIds);
+    setEmailSubject('You have been shortlisted!');
+    setEmailBody('Congratulations! You have been shortlisted for the next round. We will contact you soon.');
+    setEmailDialogOpen('shortlist');
+  };
+
+  const openSelectDialog = () => {
+    const applicationIds = displayedInterviewApps.map(app => app._id);
+    setPendingSelect(applicationIds);
+    setEmailSubject('Congratulations! You have been selected');
+    setEmailBody('You have been selected for the next stage. We will contact you soon.');
+    setEmailDialogOpen('select');
+  };
+
+  const handleShortlist = async (customSubject?: string, customBody?: string) => {
     setShortlisting(true);
     try {
-      const applicationIds = topN === 0 ? [] : displayedApplications.map(app => app._id);
+      const applicationIds = pendingShortlist;
       const res = await fetch(`${API_URL}/api/applications/shortlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ applicationIds, jobId })
+        body: JSON.stringify({ applicationIds, jobId, emailSubject: customSubject, emailBody: customBody })
       });
       const data = await res.json();
       if (res.ok) {
@@ -97,6 +121,7 @@ export default function ViewApplications() {
       alert('Failed to shortlist applicants.');
     } finally {
       setShortlisting(false);
+      setEmailDialogOpen(null);
     }
   };
 
@@ -106,14 +131,14 @@ export default function ViewApplications() {
     .sort((a, b) => (b.interviewScore || 0) - (a.interviewScore || 0));
   const displayedInterviewApps = topN > 0 ? sortedInterviewApps.slice(0, topN) : sortedInterviewApps;
 
-  const handleSelectCandidates = async () => {
+  const handleSelectCandidates = async (customSubject?: string, customBody?: string) => {
     setSelecting(true);
     try {
-      const applicationIds = displayedInterviewApps.map(app => app._id);
+      const applicationIds = pendingSelect;
       const res = await fetch(`${API_URL}/api/applications/select-top`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ applicationIds, jobId })
+        body: JSON.stringify({ applicationIds, jobId, emailSubject: customSubject, emailBody: customBody })
       });
       const data = await res.json();
       if (res.ok) {
@@ -130,6 +155,7 @@ export default function ViewApplications() {
       alert('Failed to select candidates.');
     } finally {
       setSelecting(false);
+      setEmailDialogOpen(null);
     }
   };
 
@@ -186,7 +212,7 @@ export default function ViewApplications() {
                 <Button
                   variant="default"
                   disabled={shortlisting}
-                  onClick={handleShortlist}
+                  onClick={openShortlistDialog}
                 >
                   {shortlisting ? 'Shortlisting...' : 'Shortlist'}
                 </Button>
@@ -272,7 +298,7 @@ export default function ViewApplications() {
                 <Button
                   variant="default"
                   disabled={selecting}
-                  onClick={handleSelectCandidates}
+                  onClick={openSelectDialog}
                 >
                   {selecting ? 'Selecting...' : 'Select Candidates'}
                 </Button>
@@ -324,6 +350,48 @@ export default function ViewApplications() {
           </Card>
         )}
       </div>
+      {/* Email Dialog for Shortlist/Select */}
+      <Dialog open={!!emailDialogOpen} onOpenChange={open => !open && setEmailDialogOpen(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{emailDialogOpen === 'shortlist' ? 'Send Shortlist Email' : 'Send Selection Email'}</DialogTitle>
+            <DialogDescription>
+              Customize the email subject and message to be sent to the candidates.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              value={emailSubject}
+              onChange={e => setEmailSubject(e.target.value)}
+              placeholder="Email Subject"
+              className="w-full"
+            />
+            <Textarea
+              value={emailBody}
+              onChange={e => setEmailBody(e.target.value)}
+              placeholder="Email Body"
+              className="w-full min-h-[120px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                if (emailDialogOpen === 'shortlist') {
+                  void handleShortlist(emailSubject, emailBody);
+                } else {
+                  void handleSelectCandidates(emailSubject, emailBody);
+                }
+              }}
+              disabled={shortlisting || selecting}
+            >
+              {emailDialogOpen === 'shortlist' ? (shortlisting ? 'Shortlisting...' : 'Send Shortlist Email') : (selecting ? 'Selecting...' : 'Send Selection Email')}
+            </Button>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(null)} disabled={shortlisting || selecting}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
