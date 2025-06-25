@@ -178,20 +178,30 @@ export default function AdminDashboard() {
                   return jobsList.map((job: any) => {
                     const attention: 'Pending Applications' | 'No Applications' | 'Interviews to Review' = job.attention;
                     return (
-                      <div key={job._id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <div>
-                          <span className="font-medium text-gray-900">{job.title}</span>
-                          <span className="ml-2 text-xs text-gray-500">({job.company})</span>
+                      <div key={job._id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 mb-4 bg-gray-50 rounded-xl border border-gray-200">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-base font-semibold text-gray-900">{job.title}</span>
+                            <span className="ml-2 text-sm text-gray-600 font-medium">{job.company}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                            {job.location && (
+                              <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{job.location}</span>
+                            )}
+                            {job.salary && (
+                              <span className="flex items-center gap-1"><DollarSign className="w-4 h-4" />{job.salary}</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-right">
+                        <div className="mt-3 md:mt-0 md:ml-4 flex-shrink-0">
                           {attention === 'Pending Applications' && (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold bg-orange-100 text-orange-800 rounded">Pending Applications</span>
+                            <span className="inline-block px-3 py-1 text-xs font-semibold bg-orange-100 text-orange-800 rounded-full">Pending Applications</span>
                           )}
                           {attention === 'No Applications' && (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold bg-gray-200 text-gray-700 rounded">No Applications</span>
+                            <span className="inline-block px-3 py-1 text-xs font-semibold bg-gray-200 text-gray-700 rounded-full">No Applications</span>
                           )}
                           {attention === 'Interviews to Review' && (
-                            <span className="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded">Interviews to Review</span>
+                            <span className="inline-block px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">Interviews to Review</span>
                           )}
                         </div>
                       </div>
@@ -218,13 +228,25 @@ export default function AdminDashboard() {
                   .sort((a: any, b: any) => (b.applicationCount || 0) - (a.applicationCount || 0))
                   .slice(0, 5)
                   .map((job: any, index: number) => (
-                    <div key={job._id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div>
-                        <span className="font-medium text-gray-900">{job.title}</span>
-                        <span className="ml-2 text-xs text-gray-500">({job.company})</span>
+                    <div key={job._id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 mb-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-base font-semibold text-gray-900">{job.title}</span>
+                          <span className="ml-2 text-sm text-gray-600 font-medium">{job.company}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                          {job.location && (
+                            <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{job.location}</span>
+                          )}
+                          {job.salary && (
+                            <span className="flex items-center gap-1"><DollarSign className="w-4 h-4" />{job.salary}</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-sm font-semibold text-blue-700">{job.applicationCount} applications</span>
+                      <div className="mt-3 md:mt-0 md:ml-4 flex-shrink-0">
+                        <span className="inline-block px-3 py-1 text-sm font-semibold bg-blue-100 text-blue-800 rounded-full">
+                          {job.applicationCount} applications
+                        </span>
                       </div>
                     </div>
                   ))}
