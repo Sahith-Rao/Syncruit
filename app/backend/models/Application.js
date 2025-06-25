@@ -6,7 +6,11 @@ const applicationSchema = new mongoose.Schema({
   resumeScore: { type: Number, required: true },
   resumeUrl: { type: String },
   appliedAt: { type: Date, default: Date.now },
-  status: { type: String, default: 'Applied' },
+  status: { 
+    type: String, 
+    default: 'Applied',
+    enum: ['Applied', 'Shortlisted', 'Not Qualified', 'Reviewing', 'Interview Expired', 'Selected', 'Not Selected']
+  },
   shortlisted: { type: Boolean, default: false },
   interviewStatus: { type: String, default: 'Not Started' }, // 'Not Started', 'Result Pending', 'Selected'
   interviewScore: { type: Number }, // Store interview score for admin selection

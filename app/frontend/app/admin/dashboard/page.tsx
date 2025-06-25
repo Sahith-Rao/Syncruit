@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import AdminNavbar from '@/components/admin-navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Briefcase, Users, FileText, TrendingUp, Eye, MapPin, DollarSign } from 'lucide-react';
+import { Briefcase, Users, FileText, TrendingUp, Eye, MapPin, DollarSign, Clock, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Job {
   id: number;
@@ -67,6 +68,44 @@ export default function AdminDashboard() {
   }
 
   const totalApplications = jobs.reduce((sum, job) => sum + job.applications, 0);
+
+  const checkExpiredInterviews = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/interviews/check-expired');
+      const data = await response.json();
+      
+      if (response.ok) {
+        if (data.expiredCount > 0) {
+          toast.success(`Processed ${data.expiredCount} expired interviews`);
+        } else {
+          toast.info('No expired interviews found');
+        }
+      } else {
+        toast.error('Failed to check expired interviews');
+      }
+    } catch (error) {
+      toast.error('Error checking expired interviews');
+    }
+  };
+
+  const checkJobDeadlines = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/jobs/check-deadlines');
+      const data = await response.json();
+      
+      if (response.ok) {
+        if (data.closedCount > 0) {
+          toast.success(`Closed ${data.closedCount} job applications`);
+        } else {
+          toast.info('No jobs past deadline found');
+        }
+      } else {
+        toast.error('Failed to check job deadlines');
+      }
+    } catch (error) {
+      toast.error('Error checking job deadlines');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -198,6 +237,40 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Utility Section */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <AlertTriangle className="w-5 h-5 mr-2 text-orange-600" />
+              System Utilities
+            </CardTitle>
+            <CardDescription>Admin tools for system maintenance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4">
+              <Button 
+                variant="outline" 
+                onClick={checkExpiredInterviews}
+                className="flex items-center"
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Check Expired Interviews
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={checkJobDeadlines}
+                className="flex items-center"
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Check Job Deadlines
+              </Button>
+              <p className="text-sm text-gray-600 mt-2">
+                Manually trigger the check for expired interviews. This normally runs automatically every hour.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

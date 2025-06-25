@@ -69,7 +69,7 @@ export default function CandidateDashboard() {
   }, [router]);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/jobs')
+    fetch('http://localhost:5000/api/jobs/candidate')
       .then(res => res.json())
       .then(data => setJobs(data))
       .catch(err => console.error(err));

@@ -28,11 +28,11 @@ interface Job {
   location: string;
   salary: string;
   description: string;
-  lastDate: string;
+  deadline: string;
   createdAt: string;
   applicationCount: number;
-  status?: 'Active' | 'Closed' | 'Draft' | 'Selection Complete'; // Add 'Selection Complete'
-  interviewStatus?: string; // Add interviewStatus
+  status?: 'Applications Open' | 'Applications Closed' | 'Shortlisted, Interview Pending' | 'Interviews Open' | 'Interviews Closed' | 'Selection Complete';
+  interviewStatus?: string;
 }
 
 export default function ManageJobs() {
@@ -93,12 +93,18 @@ export default function ManageJobs() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active':
+      case 'Applications Open':
         return 'bg-green-100 text-green-800';
-      case 'Closed':
+      case 'Applications Closed':
         return 'bg-red-100 text-red-800';
-      case 'Draft':
+      case 'Shortlisted, Interview Pending':
         return 'bg-yellow-100 text-yellow-800';
+      case 'Interviews Open':
+        return 'bg-blue-100 text-blue-800';
+      case 'Interviews Closed':
+        return 'bg-purple-100 text-purple-800';
+      case 'Selection Complete':
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -157,8 +163,8 @@ export default function ManageJobs() {
                         <p className="text-lg text-gray-700 font-medium">{job.company}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <Badge className={getStatusColor(job.status === 'Selection Complete' ? 'Selection Complete' : isJobCompleted(job) ? 'Completed' : (job.status || 'Active'))}>
-                          {job.status === 'Selection Complete' ? 'Selection Complete' : isJobCompleted(job) ? 'Completed' : (job.status || 'Active')}
+                        <Badge className={getStatusColor(job.status === 'Selection Complete' ? 'Selection Complete' : isJobCompleted(job) ? 'Completed' : (job.status || 'Applications Open'))}>
+                          {job.status === 'Selection Complete' ? 'Selection Complete' : isJobCompleted(job) ? 'Completed' : (job.status || 'Applications Open')}
                         </Badge>
                         {job.status !== 'Selection Complete' && job.interviewStatus && (
                           <Badge className="bg-purple-100 text-purple-800 mt-1">
@@ -191,7 +197,7 @@ export default function ManageJobs() {
                         Applications: <span className="font-medium text-blue-600 ml-1">{job.applicationCount}</span>
                       </div>
                       <div className="text-gray-500">
-                        Closes: {format(new Date(job.lastDate), 'MMM d, yyyy')}
+                        Closes: {format(new Date(job.deadline), 'MMM d, yyyy')}
                       </div>
                     </div>
                   </div>
@@ -206,7 +212,7 @@ export default function ManageJobs() {
                       <Eye className="w-4 h-4 mr-2" />
                       View Applications ({job.applicationCount})
                     </Button>
-                    {job.interviewStatus === 'Interview Pending' && (
+                    {job.status === 'Interviews Open' && (
                       <Button
                         onClick={() => router.push(`/admin/manage-jobs/${job._id}?tab=interviews`)}
                         variant="outline"

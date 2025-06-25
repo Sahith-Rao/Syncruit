@@ -89,7 +89,7 @@ const generateQuestions = async (jobData) => {
 // POST /api/interviews/setup - Setup interview for a job
 router.post('/setup', async (req, res) => {
   try {
-    const { jobId, techStack } = req.body;
+    const { jobId, techStack, deadline } = req.body;
     
     if (!jobId) {
       return res.status(400).json({ error: 'Job ID is required' });
@@ -97,6 +97,10 @@ router.post('/setup', async (req, res) => {
 
     if (!techStack || !techStack.trim()) {
       return res.status(400).json({ error: 'Tech stack is required' });
+    }
+
+    if (!deadline) {
+      return res.status(400).json({ error: 'Interview deadline is required' });
     }
 
     // Get the job details
@@ -121,7 +125,7 @@ router.post('/setup', async (req, res) => {
       { 
         techStack: techStack.trim(),
         interviewStatus: 'Ready',
-        status: 'Interview Pending'
+        status: 'Interviews Open'
       },
       { new: true }
     );
@@ -212,13 +216,18 @@ router.post('/start', async (req, res) => {
       // Generate questions for this specific job
       const questions = await generateQuestions(application.job);
       
+      // Get interview deadline from job or set default (7 days from now)
+      const interviewDeadline = new Date();
+      interviewDeadline.setDate(interviewDeadline.getDate() + 7);
+      
       // Create new interview
       interview = new Interview({
         job: application.job._id,
         candidate: application.candidate._id,
         application: applicationId,
         questions: questions,
-        status: 'Pending'
+        status: 'Pending',
+        deadline: interviewDeadline
       });
       
       await interview.save();
@@ -346,12 +355,12 @@ router.post('/complete', async (req, res) => {
       { new: true }
     );
 
-    // Update the candidate's application: set interviewStatus to 'Result Pending' and store score
+    // Update the candidate's application: set interviewStatus to 'Reviewing' and store score
     if (interview && interview.application) {
       await Application.findByIdAndUpdate(
         interview.application,
         {
-          interviewStatus: 'Result Pending',
+          status: 'Reviewing',
           interviewScore: Math.round(overallRating * 10) / 10
         }
       );
@@ -396,6 +405,85 @@ router.get('/:interviewId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching interview:', error);
     res.status(500).json({ error: 'Failed to fetch interview' });
+  }
+});
+
+// GET /api/interviews/check-expired - Manually trigger expired interview check (for testing)
+router.get('/check-expired', async (req, res) => {
+  try {
+    const now = new Date();
+    
+    // Find all interviews that are past deadline and not completed
+    const expiredInterviews = await Interview.find({
+      deadline: { $lt: now },
+      status: { $ne: 'Completed' }
+    });
+
+    if (expiredInterviews.length === 0) {
+      return res.json({ message: 'No expired interviews found', expiredCount: 0 });
+    }
+
+    // Update application statuses for expired interviews
+    const applicationIds = expiredInterviews.map(interview => interview.application);
+    
+    const updateResult = await Application.updateMany(
+      { _id: { $in: applicationIds } },
+      { $set: { status: 'Interview Expired' } }
+    );
+
+    // Update interview statuses
+    await Interview.updateMany(
+      { _id: { $in: expiredInterviews.map(i => i._id) } },
+      { $set: { status: 'Expired' } }
+    );
+
+    res.json({ 
+      message: 'Expired interviews processed',
+      expiredCount: expiredInterviews.length,
+      updatedApplications: updateResult.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error checking expired interviews:', error);
+    res.status(500).json({ error: 'Failed to check expired interviews' });
+  }
+});
+
+// POST /api/interviews/check-expired - Check and update expired interviews
+router.post('/check-expired', async (req, res) => {
+  try {
+    const now = new Date();
+    
+    // Find all interviews that are past deadline and not completed
+    const expiredInterviews = await Interview.find({
+      deadline: { $lt: now },
+      status: { $ne: 'Completed' }
+    });
+
+    if (expiredInterviews.length === 0) {
+      return res.json({ message: 'No expired interviews found' });
+    }
+
+    // Update application statuses for expired interviews
+    const applicationIds = expiredInterviews.map(interview => interview.application);
+    
+    await Application.updateMany(
+      { _id: { $in: applicationIds } },
+      { $set: { status: 'Interview Expired' } }
+    );
+
+    // Update interview statuses
+    await Interview.updateMany(
+      { _id: { $in: expiredInterviews.map(i => i._id) } },
+      { $set: { status: 'Expired' } }
+    );
+
+    res.json({ 
+      message: 'Expired interviews processed',
+      expiredCount: expiredInterviews.length
+    });
+  } catch (error) {
+    console.error('Error checking expired interviews:', error);
+    res.status(500).json({ error: 'Failed to check expired interviews' });
   }
 });
 

@@ -11,6 +11,7 @@ const interviewSchema = new mongoose.Schema({
   status: { type: String, default: 'Pending', enum: ['Pending', 'In Progress', 'Completed'] },
   overallRating: { type: Number, default: 0 },
   feedback: { type: String },
+  deadline: { type: Date, required: true },
   startedAt: { type: Date },
   completedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },

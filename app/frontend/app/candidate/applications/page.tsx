@@ -37,10 +37,11 @@ interface Application {
     salary: string;
     description: string;
     interviewStatus?: string;
+    status?: string;
   };
   resumeScore: number;
   appliedAt: string;
-  status: 'Applied' | 'Under Review' | 'Interview Scheduled' | 'Rejected' | 'Accepted';
+  status: 'Applied' | 'Shortlisted' | 'Not Qualified' | 'Reviewing' | 'Interview Expired' | 'Selected' | 'Not Selected';
   shortlisted: boolean;
   interviewStatus?: string;
 }
@@ -107,17 +108,20 @@ export default function MyApplications() {
   };
 
   const getStatusColor = (status: string, interviewStatus?: string) => {
-    if (interviewStatus === 'Result Pending') return 'bg-orange-100 text-orange-800';
     switch (status) {
       case 'Applied':
         return 'bg-blue-100 text-blue-800';
-      case 'Under Review':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Interview Scheduled':
-        return 'bg-purple-100 text-purple-800';
-      case 'Accepted':
+      case 'Shortlisted':
         return 'bg-green-100 text-green-800';
-      case 'Rejected':
+      case 'Not Qualified':
+        return 'bg-red-100 text-red-800';
+      case 'Reviewing':
+        return 'bg-orange-100 text-orange-800';
+      case 'Interview Expired':
+        return 'bg-gray-100 text-gray-800';
+      case 'Selected':
+        return 'bg-green-100 text-green-800';
+      case 'Not Selected':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -128,13 +132,17 @@ export default function MyApplications() {
     switch (status) {
       case 'Applied':
         return <Clock className="w-4 h-4" />;
-      case 'Under Review':
-        return <Eye className="w-4 h-4" />;
-      case 'Interview Scheduled':
-        return <Calendar className="w-4 h-4" />;
-      case 'Accepted':
+      case 'Shortlisted':
         return <CheckCircle className="w-4 h-4" />;
-      case 'Rejected':
+      case 'Not Qualified':
+        return <XCircle className="w-4 h-4" />;
+      case 'Reviewing':
+        return <Eye className="w-4 h-4" />;
+      case 'Interview Expired':
+        return <XCircle className="w-4 h-4" />;
+      case 'Selected':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'Not Selected':
         return <XCircle className="w-4 h-4" />;
       default:
         return <FileText className="w-4 h-4" />;
@@ -149,32 +157,21 @@ export default function MyApplications() {
 
   const getApplicationStats = () => {
     const total = applications.length;
-    const pending = applications.filter(app => ['Applied', 'Under Review'].includes(app.status)).length;
-    const interviews = applications.filter(app => app.status === 'Interview Scheduled' || app.shortlisted).length;
-    const accepted = applications.filter(app => app.status === 'Accepted').length;
+    const applied = applications.filter(app => app.status === 'Applied').length;
+    const shortlisted = applications.filter(app => app.status === 'Shortlisted').length;
+    const reviewing = applications.filter(app => app.status === 'Reviewing').length;
+    const selected = applications.filter(app => app.status === 'Selected').length;
     
-    return { total, pending, interviews, accepted };
+    return { total, applied, shortlisted, reviewing, selected };
   };
 
   const stats = getApplicationStats();
 
   const getCandidateStatus = (application: Application) => {
-    if (!application.shortlisted) {
-      return { label: 'Not Qualified', color: 'bg-gray-100 text-gray-800' };
-    }
-    if (!application.interviewStatus || application.interviewStatus === 'Not Started') {
-      return { label: 'Interview Starts Soon', color: 'bg-yellow-100 text-yellow-800' };
-    }
-    if (application.interviewStatus === 'Result Pending') {
-      return { label: 'Result Pending', color: 'bg-orange-100 text-orange-800' };
-    }
-    if (application.interviewStatus === 'Selected') {
-      return { label: 'Selected', color: 'bg-green-100 text-green-800' };
-    }
-    if (application.interviewStatus === 'Completed') {
-      return { label: 'Interview Completed', color: 'bg-blue-100 text-blue-800' };
-    }
-    return { label: application.status, color: getStatusColor(application.status, application.interviewStatus) };
+    return { 
+      label: application.status, 
+      color: getStatusColor(application.status, application.interviewStatus) 
+    };
   };
 
   if (!candidateData) {
@@ -210,7 +207,7 @@ export default function MyApplications() {
               <Clock className="h-4 w-4 opacity-90" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
+              <div className="text-2xl font-bold">{stats.applied}</div>
               <p className="text-xs opacity-90">Awaiting response</p>
             </CardContent>
           </Card>
@@ -221,7 +218,7 @@ export default function MyApplications() {
               <Calendar className="h-4 w-4 opacity-90" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.interviews}</div>
+              <div className="text-2xl font-bold">{stats.shortlisted}</div>
               <p className="text-xs opacity-90">Scheduled</p>
             </CardContent>
           </Card>
@@ -232,7 +229,7 @@ export default function MyApplications() {
               <CheckCircle className="h-4 w-4 opacity-90" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.accepted}</div>
+              <div className="text-2xl font-bold">{stats.selected}</div>
               <p className="text-xs opacity-90">Job offers</p>
             </CardContent>
           </Card>
@@ -297,8 +294,10 @@ export default function MyApplications() {
                   <div className="flex flex-col items-end gap-4">
                     <Button variant="default" onClick={() => setOpenJobId(application.job._id)}>View Job</Button>
                     {application.shortlisted &&
-                      (application.job.interviewStatus === 'Ready' || application.job.interviewStatus === 'Interview Pending') &&
-                      (!application.interviewStatus || application.interviewStatus === 'Not Started') && (
+                      (application.job.interviewStatus === 'Ready' || application.job.status === 'Interviews Open') &&
+                      (!application.interviewStatus || application.interviewStatus === 'Not Started') &&
+                      application.status !== 'Reviewing' &&
+                      application.status !== 'Not Selected' && (
                         <Button 
                           variant="outline" 
                           onClick={() => startInterview(application._id)}

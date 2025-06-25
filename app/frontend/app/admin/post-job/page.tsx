@@ -24,9 +24,7 @@ export default function PostJob() {
     jobType: '',
     experience: '',
     description: '',
-    requirements: '',
-    benefits: '',
-    lastDate: '',
+    deadline: '',
     skillsRequired: ''
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -78,9 +76,7 @@ export default function PostJob() {
           jobType: '',
           experience: '',
           description: '',
-          requirements: '',
-          benefits: '',
-          lastDate: '',
+          deadline: '',
           skillsRequired: ''
         });
       } else {
@@ -227,15 +223,15 @@ export default function PostJob() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="lastDate">Application Deadline</Label>
+                <Label htmlFor="deadline">Application Deadline</Label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    id="lastDate"
-                    name="lastDate"
-                    type="date"
+                    id="deadline"
+                    name="deadline"
+                    type="datetime-local"
                     className="pl-10"
-                    value={formData.lastDate}
+                    value={formData.deadline}
                     onChange={handleChange}
                   />
                 </div>
@@ -251,30 +247,6 @@ export default function PostJob() {
                   value={formData.description}
                   onChange={handleChange}
                   required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="requirements">Requirements & Qualifications</Label>
-                <Textarea
-                  id="requirements"
-                  name="requirements"
-                  placeholder="List the required skills, qualifications, and experience..."
-                  rows={4}
-                  value={formData.requirements}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="benefits">Benefits & Perks</Label>
-                <Textarea
-                  id="benefits"
-                  name="benefits"
-                  placeholder="Describe the benefits, perks, and what makes your company great..."
-                  rows={4}
-                  value={formData.benefits}
-                  onChange={handleChange}
                 />
               </div>
 

@@ -72,13 +72,19 @@ router.post('/shortlist', async (req, res) => {
     }
 
     // Update applications as shortlisted
-    const updated = await Application.updateMany(
+    await Application.updateMany(
       { _id: { $in: applicationIds }, job: jobId },
       { $set: { shortlisted: true, status: 'Shortlisted' } }
     );
 
-    // Update the job status to 'Interview Pending'
-    const updatedJob = await Job.findByIdAndUpdate(jobId, { $set: { status: 'Interview Pending' } }, { new: true });
+    // Update non-shortlisted applications to 'Not Qualified'
+    await Application.updateMany(
+      { job: jobId, _id: { $nin: applicationIds } },
+      { $set: { status: 'Not Qualified' } }
+    );
+
+    // Update the job status to 'Shortlisted, Interview Pending'
+    const updatedJob = await Job.findByIdAndUpdate(jobId, { $set: { status: 'Shortlisted, Interview Pending' } }, { new: true });
     console.log('Updated job after shortlisting:', updatedJob);
 
     // Fetch candidate emails
@@ -103,7 +109,7 @@ router.post('/shortlist', async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    res.json({ message: 'Shortlisted and emails sent', updatedCount: updated.nModified || updated.modifiedCount });
+    res.json({ message: 'Shortlisted and emails sent', updatedCount: applicationIds.length });
   } catch (error) {
     console.error('Error shortlisting applicants:', error);
     res.status(500).json({ error: 'Failed to shortlist applicants and send emails.' });
@@ -121,7 +127,13 @@ router.post('/select-top', async (req, res) => {
     // Update selected applications
     await Application.updateMany(
       { _id: { $in: applicationIds }, job: jobId },
-      { $set: { interviewStatus: 'Selected' } }
+      { $set: { status: 'Selected', interviewStatus: 'Selected' } }
+    );
+
+    // Update non-selected applications to 'Not Selected'
+    await Application.updateMany(
+      { job: jobId, _id: { $nin: applicationIds } },
+      { $set: { status: 'Not Selected' } }
     );
 
     // Fetch candidate emails

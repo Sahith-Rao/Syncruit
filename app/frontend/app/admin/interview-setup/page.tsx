@@ -29,6 +29,7 @@ export default function PostInterview() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [techStack, setTechStack] = useState('');
+  const [deadline, setDeadline] = useState('');
   const [posting, setPosting] = useState(false);
   const router = useRouter();
 
@@ -51,9 +52,9 @@ export default function PostInterview() {
     try {
       const response = await fetch(`${API_URL}/api/jobs`);
       const data = await response.json();
-      // Only jobs with status 'Interview Pending' and interviewStatus !== 'Ready'
+      // Only jobs with status 'Shortlisted, Interview Pending' and interviewStatus !== 'Ready'
       const filtered = Array.isArray(data)
-        ? data.filter((job: Job) => job.status === 'Interview Pending' && job.interviewStatus !== 'Ready')
+        ? data.filter((job: Job) => job.status === 'Shortlisted, Interview Pending' && job.interviewStatus !== 'Ready')
         : [];
       setJobs(filtered);
     } catch (error) {
@@ -66,6 +67,7 @@ export default function PostInterview() {
   const handleSelectJob = (job: Job) => {
     setSelectedJob(job);
     setTechStack('');
+    setDeadline('');
   };
 
   const handlePostInterview = async () => {
@@ -73,18 +75,27 @@ export default function PostInterview() {
       toast.error('Please enter the tech stack');
       return;
     }
+    if (!deadline) {
+      toast.error('Please set the interview deadline');
+      return;
+    }
     setPosting(true);
     try {
       const response = await fetch(`${API_URL}/api/interviews/setup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId: selectedJob._id, techStack: techStack.trim() })
+        body: JSON.stringify({ 
+          jobId: selectedJob._id, 
+          techStack: techStack.trim(),
+          deadline: deadline
+        })
       });
       const data = await response.json();
       if (response.ok) {
         toast.success('Interview posted successfully!');
         setSelectedJob(null);
         setTechStack('');
+        setDeadline('');
         fetchJobs();
       } else {
         toast.error(data.error || 'Failed to post interview');
@@ -110,7 +121,7 @@ export default function PostInterview() {
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Post Interviews</h1>
-          <p className="text-gray-600 mt-2">Select a job with status 'Interview Pending', enter the tech stack, and post the interview. Only shortlisted candidates for that job will see the interview.</p>
+          <p className="text-gray-600 mt-2">Select a job with status 'Shortlisted, Interview Pending', enter the tech stack, and post the interview. Only shortlisted candidates for that job will see the interview.</p>
         </div>
         <Card className="mb-8">
           <CardContent className="pt-6">
@@ -145,6 +156,17 @@ export default function PostInterview() {
                 />
                 <p className="text-xs text-gray-500 mt-1">Specify the technologies to focus on for generating interview questions</p>
               </div>
+              <div>
+                <label htmlFor="deadline" className="text-sm font-medium">Interview Deadline *</label>
+                <Input
+                  id="deadline"
+                  type="datetime-local"
+                  value={deadline}
+                  onChange={e => setDeadline(e.target.value)}
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Set the deadline for candidates to complete the interview</p>
+              </div>
               <div className="flex gap-2">
                 <Button
                   onClick={handlePostInterview}
@@ -177,7 +199,7 @@ export default function PostInterview() {
                   <div className="text-center py-8">
                     <FileText className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900">No jobs found</h3>
-                    <p className="mt-1 text-sm text-gray-500">No jobs with status 'Interview Pending'.</p>
+                    <p className="mt-1 text-sm text-gray-500">No jobs with status 'Shortlisted, Interview Pending'.</p>
                   </div>
                 </CardContent>
               </Card>
@@ -196,7 +218,7 @@ export default function PostInterview() {
                           </div>
                         </CardDescription>
                       </div>
-                      <Badge className="bg-yellow-100 text-yellow-800">Interview Pending</Badge>
+                      <Badge className="bg-yellow-100 text-yellow-800">Shortlisted, Interview Pending</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
