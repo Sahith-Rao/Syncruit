@@ -20,35 +20,8 @@ interface Job {
 
 export default function AdminDashboard() {
   const [adminData, setAdminData] = useState<any>(null);
-  const [jobs] = useState<Job[]>([
-    {
-      id: 1,
-      title: 'Senior Frontend Developer',
-      company: 'TechCorp Inc.',
-      location: 'San Francisco, CA',
-      salary: '$120,000 - $150,000',
-      applications: 15,
-      postedDate: '2024-01-15'
-    },
-    {
-      id: 2,
-      title: 'Product Manager',
-      company: 'InnovateLab',
-      location: 'New York, NY',
-      salary: '$100,000 - $130,000',
-      applications: 23,
-      postedDate: '2024-01-12'
-    },
-    {
-      id: 3,
-      title: 'UX Designer',
-      company: 'DesignStudio',
-      location: 'Austin, TX',
-      salary: '$80,000 - $100,000',
-      applications: 8,
-      postedDate: '2024-01-10'
-    }
-  ]);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [pendingApplications, setPendingApplications] = useState<number>(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -63,11 +36,30 @@ export default function AdminDashboard() {
     setAdminData(JSON.parse(storedAdminData));
   }, [router]);
 
+  useEffect(() => {
+    // Fetch jobs for this admin
+    const storedAdminData = localStorage.getItem('adminData');
+    const adminId = storedAdminData ? JSON.parse(storedAdminData)._id : null;
+    if (!adminId) return;
+    fetch(`http://localhost:5000/api/jobs?adminId=${adminId}`)
+      .then(res => res.json())
+      .then(data => {
+        setJobs(data);
+      });
+    // Fetch pending applications count from backend
+    fetch(`http://localhost:5000/api/applications/admin/${adminId}/pending`)
+      .then(res => res.json())
+      .then(data => {
+        setPendingApplications(data.pending || 0);
+      });
+  }, []);
+
   if (!adminData) {
     return <div>Loading...</div>;
   }
 
-  const totalApplications = jobs.reduce((sum, job) => sum + job.applications, 0);
+  const totalApplications = jobs.reduce((sum, job) => sum + (job.applicationCount || 0), 0);
+  const activeJobs = jobs.filter(job => job.status === 'Applications Open').length;
 
   const checkExpiredInterviews = async () => {
     try {
@@ -123,45 +115,45 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">Jobs Posted</CardTitle>
+              <CardTitle className="text-sm font-medium opacity-90">Total Jobs Posted</CardTitle>
               <Briefcase className="h-4 w-4 opacity-90" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{jobs.length}</div>
-              <p className="text-xs opacity-90">Active job postings</p>
+              <p className="text-xs opacity-90">All jobs posted</p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">Applications</CardTitle>
-              <FileText className="h-4 w-4 opacity-90" />
+              <CardTitle className="text-sm font-medium opacity-90">Active Jobs</CardTitle>
+              <Users className="h-4 w-4 opacity-90" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalApplications}</div>
-              <p className="text-xs opacity-90">Total applications received</p>
+              <div className="text-2xl font-bold">{activeJobs}</div>
+              <p className="text-xs opacity-90">Currently open for applications</p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">Avg. Applications</CardTitle>
-              <TrendingUp className="h-4 w-4 opacity-90" />
+              <CardTitle className="text-sm font-medium opacity-90">Total Applications Received</CardTitle>
+              <FileText className="h-4 w-4 opacity-90" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{Math.round(totalApplications / jobs.length)}</div>
-              <p className="text-xs opacity-90">Per job posting</p>
+              <div className="text-2xl font-bold">{totalApplications}</div>
+              <p className="text-xs opacity-90">Across all jobs</p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">Active Roles</CardTitle>
-              <Users className="h-4 w-4 opacity-90" />
+              <CardTitle className="text-sm font-medium opacity-90">Pending Applications</CardTitle>
+              <Clock className="h-4 w-4 opacity-90" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{jobs.length}</div>
-              <p className="text-xs opacity-90">Currently hiring</p>
+              <div className="text-2xl font-bold">{pendingApplications}</div>
+              <p className="text-xs opacity-90">Awaiting review</p>
             </CardContent>
           </Card>
         </div>

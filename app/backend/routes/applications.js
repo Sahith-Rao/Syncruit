@@ -67,8 +67,23 @@ router.get('/candidate/:candidateId', async (req, res) => {
 router.post('/shortlist', async (req, res) => {
   try {
     const { applicationIds, jobId } = req.body;
-    if (!Array.isArray(applicationIds) || !jobId) {
-      return res.status(400).json({ error: 'applicationIds (array) and jobId are required.' });
+    if (!jobId) {
+      return res.status(400).json({ error: 'jobId is required.' });
+    }
+
+    if (!Array.isArray(applicationIds)) {
+      return res.status(400).json({ error: 'applicationIds must be an array.' });
+    }
+
+    if (applicationIds.length === 0) {
+      // Shortlist no one: mark all as Not Qualified
+      await Application.updateMany(
+        { job: jobId },
+        { $set: { shortlisted: false, status: 'Not Qualified' } }
+      );
+      // Update job status
+      await Job.findByIdAndUpdate(jobId, { $set: { status: 'Selection Complete' } }, { new: true });
+      return res.json({ message: 'No candidates shortlisted. Selection complete.' });
     }
 
     // Update applications as shortlisted
@@ -120,8 +135,19 @@ router.post('/shortlist', async (req, res) => {
 router.post('/select-top', async (req, res) => {
   try {
     const { jobId, applicationIds } = req.body;
-    if (!jobId || !Array.isArray(applicationIds) || applicationIds.length === 0) {
+    if (!jobId || !Array.isArray(applicationIds)) {
       return res.status(400).json({ error: 'jobId and applicationIds (array) are required.' });
+    }
+
+    if (applicationIds.length === 0) {
+      // Select no one: mark all as Not Selected
+      await Application.updateMany(
+        { job: jobId },
+        { $set: { status: 'Not Selected' } }
+      );
+      // Update job status
+      await Job.findByIdAndUpdate(jobId, { $set: { status: 'Selection Complete' } });
+      return res.json({ message: 'No candidates selected. All marked as Not Selected.' });
     }
 
     // Update selected applications
@@ -174,6 +200,28 @@ router.post('/select-top', async (req, res) => {
   } catch (error) {
     console.error('Error selecting candidates:', error);
     res.status(500).json({ error: 'Failed to select candidates and send emails.' });
+  }
+});
+
+// GET /api/applications/admin/:adminId/pending - Get count of pending applications for all jobs posted by this admin
+router.get('/admin/:adminId/pending', async (req, res) => {
+  try {
+    const { adminId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(adminId)) {
+      return res.status(400).json({ error: 'Invalid Admin ID format.' });
+    }
+    // Find all jobs posted by this admin
+    const jobs = await Job.find({ postedBy: adminId }, { _id: 1 });
+    const jobIds = jobs.map(job => job._id);
+    // Count applications with status 'Applied' or 'Reviewing' for these jobs
+    const pendingCount = await Application.countDocuments({
+      job: { $in: jobIds },
+      status: { $in: ['Applied', 'Reviewing'] }
+    });
+    res.json({ pending: pendingCount });
+  } catch (error) {
+    console.error('Error fetching pending applications:', error);
+    res.status(500).json({ error: 'Failed to fetch pending applications count.' });
   }
 });
 

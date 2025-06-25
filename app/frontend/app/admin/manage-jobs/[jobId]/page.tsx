@@ -78,7 +78,7 @@ export default function ViewApplications() {
   const handleShortlist = async () => {
     setShortlisting(true);
     try {
-      const applicationIds = displayedApplications.map(app => app._id);
+      const applicationIds = topN === 0 ? [] : displayedApplications.map(app => app._id);
       const res = await fetch(`${API_URL}/api/applications/shortlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -87,7 +87,9 @@ export default function ViewApplications() {
       const data = await res.json();
       if (res.ok) {
         setShortlistedIds(applicationIds);
-        alert('Shortlisted and emails sent!');
+        if (data.message !== 'No candidates shortlisted. Selection complete.') {
+          alert('Shortlisted and emails sent!');
+        }
       } else {
         alert(data.error || 'Failed to shortlist applicants.');
       }
@@ -183,7 +185,7 @@ export default function ViewApplications() {
                 </div>
                 <Button
                   variant="default"
-                  disabled={shortlisting || displayedApplications.length === 0}
+                  disabled={shortlisting}
                   onClick={handleShortlist}
                 >
                   {shortlisting ? 'Shortlisting...' : 'Shortlist'}
@@ -269,7 +271,7 @@ export default function ViewApplications() {
                 </div>
                 <Button
                   variant="default"
-                  disabled={selecting || displayedInterviewApps.length === 0}
+                  disabled={selecting}
                   onClick={handleSelectCandidates}
                 >
                   {selecting ? 'Selecting...' : 'Select Candidates'}
