@@ -184,8 +184,21 @@ const evaluateAnswer = async (question, userAnswer, correctAnswer) => {
     Question: "${question}"
     User Answer: "${userAnswer}"
     Correct Answer: "${correctAnswer}"
-    Please compare the user's answer to the correct answer, and provide a rating (from 1 to 10) based on answer quality, and offer feedback for improvement.
-    Return the result in JSON format with the fields "ratings" (number) and "feedback" (string).
+    
+    Please compare the answer to the correct answer, and provide a rating (from 1 to 10) based on answer quality, and offer feedback for improvement.
+    
+    IMPORTANT: The rating must be precise with two decimal places (e.g., 7.42, 8.95, etc.), not just whole numbers or .5 increments.
+    
+    Format your feedback with the following requirements:
+    1. Use clear subheadings (like "Content", "Completeness", etc.) but DO NOT include an "Accuracy" subheading
+    2. Under each subheading, use short bullet points
+    3. Address the person directly using "your" instead of "the user" (e.g., "Your answer lacks detail" instead of "The user's answer lacks detail")
+    4. Keep each bullet point concise and actionable
+    
+    Return the result in JSON format with the fields "ratings" (number with two decimal places) and "feedback" (string).
+    
+    Example feedback format:
+    "feedback": "## Content\\n* Your explanation of X concept is incomplete\\n* Your example demonstrates good understanding of Y\\n\\n## Completeness\\n* Your answer covers most key points but misses Z\\n* Your examples are relevant but could be more detailed"
   `;
 
   const result = await model.generateContent(prompt);
@@ -312,13 +325,34 @@ router.post('/analyze', upload.single('video'), async (req, res) => {
     const totalGeminiScore = geminiResults.reduce((sum, result) => sum + (result.ratings || 0), 0);
     const averageGeminiScore = geminiResults.length > 0 ? totalGeminiScore / geminiResults.length : 0;
 
+    // Extract confidence and speech rate from HR analysis
+    const confidence = hrAnalysis.detailed_metrics?.confidence || 0;
+    const speechRate = hrAnalysis.detailed_metrics?.speech_rate || 0;
+
+    // Calculate weighted overall score on a scale of 0-100
+    // Content analysis (Gemini): 60% weightage
+    // Confidence from delivery analysis (HR): 20% weightage
+    // Speech rate from delivery analysis (HR): 20% weightage
+    
+    // Normalize all scores to 0-100 scale first
+    const normalizedGeminiScore = (averageGeminiScore / 10) * 100; // Convert 0-10 to 0-100
+    
+    // Apply weightage
+    const contentScore = normalizedGeminiScore * 0.6; // 60% of content score
+    const confidenceScore = confidence * 0.2; // 20% of confidence score
+    const speechRateScore = speechRate * 0.2; // 20% of speech rate score
+    
+    // Combine scores and ensure it's within 0-100 range
+    const weightedOverallScore = Math.min(100, Math.max(0, contentScore + confidenceScore + speechRateScore));
+
     // Combine results
     const combinedResults = {
       hrAnalysis: hrAnalysis,
       geminiAnalysis: {
-        overall_score: Math.round(averageGeminiScore * 10) / 10,
+        overall_score: Math.round(averageGeminiScore * 100) / 100,
         detailed_results: geminiResults
-      }
+      },
+      weightedScore: Math.round(weightedOverallScore * 100) / 100
     };
 
     res.json(combinedResults);

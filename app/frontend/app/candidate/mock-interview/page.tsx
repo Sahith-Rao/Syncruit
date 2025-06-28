@@ -97,6 +97,9 @@ export default function MockInterview() {
   const [generatedQuestion, setGeneratedQuestion] = useState<Question | null>(null);
   const [transcribedAnswer, setTranscribedAnswer] = useState('');
   const [recognition, setRecognition] = useState<any>(null);
+  const [countdown, setCountdown] = useState(10);
+  const [isCountingDown, setIsCountingDown] = useState(false);
+  const [recordingTimeLimit] = useState(40);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -112,15 +115,36 @@ export default function MockInterview() {
     setCandidateData(JSON.parse(storedCandidateData));
   }, [router]);
 
+  // Countdown timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isCountingDown && countdown > 0) {
+      interval = setInterval(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (isCountingDown && countdown === 0) {
+      setIsCountingDown(false);
+      startRecording();
+    }
+    return () => clearInterval(interval);
+  }, [isCountingDown, countdown]);
+
+  // Recording time limit effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isRecording) {
       interval = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        setRecordingTime(prev => {
+          if (prev >= recordingTimeLimit - 1) {
+            stopRecording();
+            return prev;
+          }
+          return prev + 1;
+        });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isRecording]);
+  }, [isRecording, recordingTimeLimit]);
 
   const generateQuestion = async () => {
     if (!techStack.trim()) {
@@ -148,8 +172,9 @@ export default function MockInterview() {
         setGeneratedQuestion(data.questions[0]);
         setInterviewStep('recording');
         toast.success('Question generated successfully!');
-        // Start recording automatically
-        startRecording();
+        // Start countdown instead of immediately recording
+        setCountdown(10);
+        setIsCountingDown(true);
       } else {
         toast.error(data.error || 'Failed to generate question');
       }
@@ -302,6 +327,55 @@ export default function MockInterview() {
     if (score >= 80) return 'bg-green-100 text-green-800';
     if (score >= 70) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
+  };
+  
+  // Helper function to render Markdown feedback
+  const renderMarkdownFeedback = (feedback: string) => {
+    if (!feedback) return null;
+    
+    // Split the feedback into sections based on headings
+    const sections = feedback.split(/(?=## )/);
+    
+    return (
+      <div className="space-y-4">
+        {sections.map((section, index) => {
+          // Skip empty sections or Accuracy section
+          if (!section.trim() || section.trim().startsWith('## Accuracy')) return null;
+          
+          // Check if this section has a heading
+          const hasHeading = section.startsWith('## ');
+          
+          if (hasHeading) {
+            // Extract heading text
+            const headingMatch = section.match(/## ([^\n]+)/);
+            const headingText = headingMatch ? headingMatch[1] : '';
+            
+            // Get content after heading
+            const contentAfterHeading = section.replace(/## [^\n]+\n/, '');
+            
+            // Split content into bullet points
+            const bulletPoints = contentAfterHeading
+              .split('\n')
+              .filter(line => line.trim().startsWith('* '))
+              .map(line => line.replace('* ', '').trim());
+            
+            return (
+              <div key={index} className="feedback-section">
+                <h3 className="text-md font-semibold text-blue-700 mb-2">{headingText}</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  {bulletPoints.map((point, i) => (
+                    <li key={i} className="text-gray-600">{point}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          } else {
+            // If no heading, just render as text
+            return <p key={index}>{section}</p>;
+          }
+        })}
+      </div>
+    );
   };
 
   // Upload recorded video and get analysis
@@ -467,9 +541,19 @@ export default function MockInterview() {
                       </div>
                     )}
 
-                    {isRecording ? (
+                    {isCountingDown ? (
+                      <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                        <div className="text-4xl font-bold text-purple-600 mb-4">{countdown}</div>
+                        <p className="text-gray-600">Recording will start automatically...</p>
+                      </div>
+                    ) : isRecording ? (
                       <div className="space-y-4">
                         <video ref={videoRef} autoPlay muted className="w-full rounded-lg border" />
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">
+                            Time Remaining: {formatTime(recordingTimeLimit - recordingTime)}
+                          </span>
+                        </div>
                         <Button onClick={stopRecording} variant="destructive" className="w-full">
                           <Square className="w-4 h-4 mr-2" />
                           Stop Recording
@@ -529,67 +613,61 @@ export default function MockInterview() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Tabs defaultValue="delivery">
+                  <div className="mb-6">
+                    <div className="p-6 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="text-3xl font-bold text-purple-800 mb-2">
+                        Overall Score: <span className="font-extrabold">{Math.round(analysisResult.weightedScore)}</span>
+                      </div>
+                      <p className="text-sm text-purple-600">
+                        Based on content (60%), confidence (20%), and speech rate (20%)
+                      </p>
+                    </div>
+                  </div>
+
+                  <Tabs defaultValue="content">
                     <TabsList className="w-full mb-4">
-                      <TabsTrigger value="delivery" className="flex-1">Delivery Analysis</TabsTrigger>
                       <TabsTrigger value="content" className="flex-1">Content Analysis</TabsTrigger>
+                      <TabsTrigger value="delivery" className="flex-1">Delivery Analysis</TabsTrigger>
                     </TabsList>
                     
-                    <TabsContent value="delivery">
-                      <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="text-2xl font-bold text-green-800 mb-4">
-                          Overall Score: <span className="font-extrabold">{analysisResult.hrAnalysis.overall_score}</span>
-                        </div>
-                        <div className="mt-4">
-                          <h4 className="text-lg font-semibold text-green-700 mb-2">Detailed Metrics</h4>
-                          <ul className="ml-4 list-disc">
-                            {analysisResult.hrAnalysis.detailed_metrics &&
-                              Object.entries(analysisResult.hrAnalysis.detailed_metrics).map(([metric, value]) => (
-                                <li key={metric} className="mb-1">
-                                  <span className="font-medium capitalize">{metric.replace(/_/g, ' ')}:</span> {String(value)}
-                                </li>
-                              ))}
-                          </ul>
-                        </div>
-                        <div className="mt-4">
-                          <h4 className="text-lg font-semibold text-green-700 mb-2">Feedback Comments</h4>
-                          <ul className="ml-4 list-disc">
-                            {analysisResult.hrAnalysis.feedback_comments &&
-                              analysisResult.hrAnalysis.feedback_comments.map((comment: string, idx: number) => (
-                                <li key={idx} className="mb-1">{comment}</li>
-                              ))}
-                          </ul>
+                    <TabsContent value="content">
+                      <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="border border-blue-100 rounded-lg p-4 bg-white">
+                          <h5 className="font-medium text-blue-800 mb-2">Interview Question:</h5>
+                          <p className="mb-4">{generatedQuestion?.question}</p>
+                          
+                          {analysisResult.geminiAnalysis.detailed_results[0] && (
+                            <div>
+                              <div className="flex items-center mb-3">
+                                <span className="text-sm font-medium mr-2">Rating:</span>
+                                <Badge className={getScoreBadgeColor(analysisResult.geminiAnalysis.detailed_results[0].ratings)}>
+                                  {(Math.round(analysisResult.geminiAnalysis.detailed_results[0].ratings * 100) / 100).toFixed(2)}/10
+                                </Badge>
+                              </div>
+                              <div className="text-gray-600 text-sm">
+                                {renderMarkdownFeedback(analysisResult.geminiAnalysis.detailed_results[0].feedback)}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TabsContent>
                     
-                    <TabsContent value="content">
-                      <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-800 mb-4">
-                          Overall Score: <span className="font-extrabold">{analysisResult.geminiAnalysis.overall_score}</span>
-                        </div>
-                        
-                        <div className="mt-4 space-y-6">
-                          <h4 className="text-lg font-semibold text-blue-700 mb-2">Question Analysis</h4>
-                          
-                          <div className="border border-blue-100 rounded-lg p-4 bg-white">
-                            <h5 className="font-medium text-blue-800 mb-2">Interview Question:</h5>
-                            <p className="mb-2">{generatedQuestion?.question}</p>
-                            
-                            {analysisResult.geminiAnalysis.detailed_results[0] && (
-                              <div className="mt-3">
-                                <div className="flex items-center mb-2">
-                                  <span className="text-sm font-medium mr-2">Rating:</span>
-                                  <Badge className={getScoreBadgeColor(analysisResult.geminiAnalysis.detailed_results[0].ratings)}>
-                                    {analysisResult.geminiAnalysis.detailed_results[0].ratings}/10
-                                  </Badge>
-                                </div>
-                                <h6 className="text-sm font-medium text-gray-700">Feedback:</h6>
-                                <p className="text-gray-600 text-sm">{analysisResult.geminiAnalysis.detailed_results[0].feedback}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                    <TabsContent value="delivery">
+                      <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+                        <ul className="ml-4 list-disc">
+                          {analysisResult.hrAnalysis.feedback_comments &&
+                            analysisResult.hrAnalysis.feedback_comments
+                              .filter((comment: string) => 
+                                !comment.toLowerCase().includes('filler word') && 
+                                !comment.toLowerCase().includes('long pause') &&
+                                !comment.toLowerCase().includes('speech clarity')
+                              )
+                              .map((comment: string, idx: number) => (
+                                <li key={idx} className="mb-2 text-gray-700">{comment}</li>
+                              ))
+                          }
+                        </ul>
                       </div>
                     </TabsContent>
                   </Tabs>
