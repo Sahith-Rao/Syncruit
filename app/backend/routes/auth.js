@@ -51,8 +51,8 @@ router.post('/register/admin', async (req, res) => {
 // Register Candidate (with resume upload)
 router.post('/register/candidate', upload.single('resume'), async (req, res) => {
   try {
-    const { name, email, password, firstName, lastName, mobile, currentPosition, experience, skills } = req.body;
-    if (!name || !email || !password || !firstName || !lastName || !req.file) return res.status(400).json({ message: 'All fields required' });
+    const { name, email, password, firstName, lastName, mobile, location, currentPosition, experience, skills } = req.body;
+    if (!name || !email || !password || !firstName || !lastName || !mobile || !location || !currentPosition || !experience || !skills || !req.file) return res.status(400).json({ message: 'All fields required' });
     const existing = await Candidate.findOne({ email });
     if (existing) return res.status(409).json({ message: 'Email already registered' });
     // Upload resume to Cloudinary
@@ -63,15 +63,24 @@ router.post('/register/candidate', upload.single('resume'), async (req, res) => 
       return res.status(500).json({ message: 'Cloudinary error', error });
     }
     const hashed = await bcrypt.hash(password, 10);
+    // Extract optional fields
+    const summary = req.body.summary || '';
+    const education = req.body.education || '';
+    const certifications = req.body.certifications || '';
+    
     const candidate = new Candidate({
       firstName,
       lastName,
       name,
       email,
       mobile,
+      location,
       currentPosition,
       experience,
       skills,
+      summary,
+      education,
+      certifications,
       password: hashed,
       resumeUrl: uploadResult.secure_url
     });
@@ -98,7 +107,33 @@ router.post('/login', async (req, res) => {
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ message: 'Invalid credentials' });
     const token = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, user: { _id: user._id, name: user.name, email: user.email, role, resumeUrl: user.resumeUrl } });
+    
+    // For candidates, include additional profile fields
+    let userData = { 
+      _id: user._id, 
+      name: user.name, 
+      email: user.email, 
+      role, 
+      resumeUrl: user.resumeUrl 
+    };
+    
+    if (role === 'candidate') {
+      userData = {
+        ...userData,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        mobile: user.mobile,
+        location: user.location,
+        currentPosition: user.currentPosition,
+        experience: user.experience,
+        skills: user.skills,
+        summary: user.summary,
+        education: user.education,
+        certifications: user.certifications
+      };
+    }
+    
+    res.json({ token, user: userData });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

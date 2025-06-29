@@ -12,6 +12,7 @@ import resumeRoutes from './routes/resume.js';
 import applicationsRoutes from './routes/applications.js';
 import interviewRoutes from './routes/interviews.js';
 import mockInterviewRoutes from './routes/mock-interviews.js';
+import candidatesRoutes from './routes/candidates.js';
 import Application from './models/Application.js';
 import Interview from './models/Interview.js';
 import Job from './models/Job.js';
@@ -28,6 +29,7 @@ app.use('/api/analyze/resume', resumeRoutes);
 app.use('/api/applications', applicationsRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/mock-interviews', mockInterviewRoutes);
+app.use('/api/candidates', candidatesRoutes);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {

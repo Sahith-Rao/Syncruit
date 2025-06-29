@@ -35,6 +35,8 @@ export default function CandidateLogin() {
       if (res.ok && data.user && data.user.role === "candidate") {
         localStorage.setItem("userType", "candidate");
         localStorage.setItem("candidateData", JSON.stringify(data.user));
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.user._id);
         toast.success("Login successful! Welcome back.");
         router.push("/candidate/dashboard");
       } else {

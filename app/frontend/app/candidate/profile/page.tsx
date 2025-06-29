@@ -21,13 +21,16 @@ import {
   Upload,
   Download,
   Plus,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function MyProfile() {
   const [candidateData, setCandidateData] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -46,66 +49,119 @@ export default function MyProfile() {
   const router = useRouter();
 
   useEffect(() => {
-    const userType = localStorage.getItem('userType');
-    const storedCandidateData = localStorage.getItem('candidateData');
-    
-    if (userType !== 'candidate' || !storedCandidateData) {
-      router.push('/candidate/login');
-      return;
-    }
-    
-    const data = JSON.parse(storedCandidateData);
-    setCandidateData(data);
-    
-    // Initialize form with existing data or defaults
-    setFormData({
-      firstName: data.firstName || '',
-      lastName: data.lastName || '',
-      email: data.email || '',
-      mobile: data.mobile || '',
-      location: data.location || 'San Francisco, CA',
-      currentPosition: data.currentPosition || 'Software Engineer',
-      experience: data.experience || '5 years',
-      skills: data.skills || '',
-      summary: data.summary || 'Passionate software engineer with expertise in modern web technologies and a strong focus on creating user-centric applications.',
-      education: data.education || 'Bachelor of Science in Computer Science - Stanford University (2019)',
-      certifications: data.certifications || 'AWS Certified Developer, Google Cloud Professional'
-    });
-    
-    // Initialize skills array
-    const skillsArray = data.skills ? data.skills.split(',').map((s: string) => s.trim()) : 
-      ['JavaScript', 'React', 'Node.js', 'Python', 'TypeScript', 'AWS', 'MongoDB', 'Git'];
-    setSkills(skillsArray);
-  }, [router]);
-
-  const handleSave = () => {
-    const updatedData = {
-      ...candidateData,
-      ...formData,
-      skills: skills.join(', ')
+    const fetchCandidateProfile = async () => {
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem('token');
+        const userType = localStorage.getItem('userType');
+        const userId = localStorage.getItem('userId');
+        
+        if (userType !== 'candidate' || !token || !userId) {
+          router.push('/candidate/login');
+          return;
+        }
+        
+        const response = await fetch(`http://localhost:5000/api/candidates/${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile');
+        }
+        
+        const data = await response.json();
+        setCandidateData(data);
+        
+        // Initialize form with existing data without defaults
+        setFormData({
+          firstName: data.firstName || '',
+          lastName: data.lastName || '',
+          email: data.email || '',
+          mobile: data.mobile || '',
+          location: data.location || '',
+          currentPosition: data.currentPosition || '',
+          experience: data.experience || '',
+          skills: data.skills || '',
+          summary: data.summary || '',
+          education: data.education || '',
+          certifications: data.certifications || ''
+        });
+        
+        // Initialize skills array from actual data only
+        const skillsArray = data.skills ? data.skills.split(',').map((s: string) => s.trim()) : [];
+        setSkills(skillsArray);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast.error('Failed to load profile. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     };
     
-    localStorage.setItem('candidateData', JSON.stringify(updatedData));
-    setCandidateData(updatedData);
-    setIsEditing(false);
-    toast.success('Profile updated successfully!');
+    fetchCandidateProfile();
+  }, [router]);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      
+      // Prepare updated data
+      const updatedData = {
+        ...formData,
+        skills: skills.join(', ')
+      };
+      
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      
+      if (!token || !userId) {
+        router.push('/candidate/login');
+        return;
+      }
+      
+      const response = await fetch(`http://localhost:5000/api/candidates/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updatedData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update profile');
+      }
+      
+      const data = await response.json();
+      setCandidateData(data);
+      setIsEditing(false);
+      toast.success('Profile updated successfully!');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
-    // Reset form data to original values
+    // Reset form data to original values without defaults
     if (candidateData) {
       setFormData({
         firstName: candidateData.firstName || '',
         lastName: candidateData.lastName || '',
         email: candidateData.email || '',
         mobile: candidateData.mobile || '',
-        location: candidateData.location || 'San Francisco, CA',
-        currentPosition: candidateData.currentPosition || 'Software Engineer',
-        experience: candidateData.experience || '5 years',
+        location: candidateData.location || '',
+        currentPosition: candidateData.currentPosition || '',
+        experience: candidateData.experience || '',
         skills: candidateData.skills || '',
-        summary: candidateData.summary || 'Passionate software engineer with expertise in modern web technologies.',
-        education: candidateData.education || 'Bachelor of Science in Computer Science - Stanford University (2019)',
-        certifications: candidateData.certifications || 'AWS Certified Developer, Google Cloud Professional'
+        summary: candidateData.summary || '',
+        education: candidateData.education || '',
+        certifications: candidateData.certifications || ''
       });
     }
     setIsEditing(false);
@@ -195,16 +251,7 @@ export default function MyProfile() {
                   </div>
                 </div>
 
-                <div className="mt-6 pt-6 border-t">
-                  <Button variant="outline" className="w-full mb-2">
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Resume
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload New Resume
-                  </Button>
-                </div>
+                {/* Resume buttons removed as requested */}
               </CardContent>
             </Card>
           </div>

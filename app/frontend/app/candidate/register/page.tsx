@@ -17,6 +17,7 @@ export default function CandidateRegister() {
     lastName: '',
     email: '',
     mobile: '',
+    location: '',
     currentPosition: '',
     experience: '',
     skills: '',
@@ -49,6 +50,7 @@ export default function CandidateRegister() {
     form.append('lastName', formData.lastName);
     form.append('email', formData.email);
     form.append('mobile', formData.mobile);
+    form.append('location', formData.location);
     form.append('currentPosition', formData.currentPosition);
     form.append('experience', formData.experience);
     form.append('skills', formData.skills);
@@ -62,7 +64,7 @@ export default function CandidateRegister() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success('Registration successful! Welcome to TalentHub.');
+        toast.success('Registration successful! Please log in with your credentials.');
         router.push('/candidate/login');
       } else {
         toast.error(data.message || 'Registration failed');
@@ -153,7 +155,7 @@ export default function CandidateRegister() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="mobile">Mobile Number</Label>
+                <Label htmlFor="mobile">Mobile Number *</Label>
                 <Input
                   id="mobile"
                   name="mobile"
@@ -161,11 +163,25 @@ export default function CandidateRegister() {
                   placeholder="+1 (555) 123-4567"
                   value={formData.mobile}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="currentPosition">Current Position</Label>
+                <Label htmlFor="location">Location *</Label>
+                <Input
+                  id="location"
+                  name="location"
+                  type="text"
+                  placeholder="San Francisco, CA"
+                  value={formData.location || ''}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currentPosition">Current Position *</Label>
                 <Input
                   id="currentPosition"
                   name="currentPosition"
@@ -173,11 +189,12 @@ export default function CandidateRegister() {
                   placeholder="Software Engineer"
                   value={formData.currentPosition}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="experience">Years of Experience</Label>
+                <Label htmlFor="experience">Years of Experience *</Label>
                 <Input
                   id="experience"
                   name="experience"
@@ -185,11 +202,12 @@ export default function CandidateRegister() {
                   placeholder="5 years"
                   value={formData.experience}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="skills">Skills</Label>
+                <Label htmlFor="skills">Skills and Technologies *</Label>
                 <Textarea
                   id="skills"
                   name="skills"
@@ -197,6 +215,7 @@ export default function CandidateRegister() {
                   rows={3}
                   value={formData.skills}
                   onChange={handleChange}
+                  required
                 />
               </div>
 

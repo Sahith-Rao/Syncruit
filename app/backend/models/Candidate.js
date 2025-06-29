@@ -5,10 +5,14 @@ const CandidateSchema = new mongoose.Schema({
   lastName: { type: String, required: true },
   name: { type: String, required: true }, // full name for backward compatibility
   email: { type: String, required: true, unique: true },
-  mobile: { type: String },
-  currentPosition: { type: String },
-  experience: { type: String },
-  skills: { type: String },
+  mobile: { type: String, required: true },
+  location: { type: String, required: true },
+  currentPosition: { type: String, required: true },
+  experience: { type: String, required: true },
+  skills: { type: String, required: true },
+  summary: { type: String },
+  education: { type: String },
+  certifications: { type: String },
   password: { type: String, required: true },
   resumeUrl: { type: String },
 }, { collection: 'candidates' });
