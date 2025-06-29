@@ -38,6 +38,8 @@ interface InterviewSession {
   completedDate: string;
   score: number;
   feedback: string;
+  question?: string; // Add question property
+  deliveryFeedback?: string[]; // Add deliveryFeedback property
   status: 'Completed' | 'In Progress' | 'Not Started';
 }
 
@@ -51,35 +53,8 @@ export default function MockInterview() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [sessions] = useState<InterviewSession[]>([
-    {
-      id: 1,
-      type: 'Technical - Frontend',
-      duration: '45 minutes',
-      completedDate: '2024-01-25',
-      score: 85,
-      feedback: 'Strong technical knowledge, good problem-solving approach. Work on explaining complex concepts more clearly.',
-      status: 'Completed'
-    },
-    {
-      id: 2,
-      type: 'Behavioral',
-      duration: '30 minutes',
-      completedDate: '2024-01-20',
-      score: 78,
-      feedback: 'Good storytelling and examples. Practice the STAR method for more structured responses.',
-      status: 'Completed'
-    },
-    {
-      id: 3,
-      type: 'System Design',
-      duration: '60 minutes',
-      completedDate: '2024-01-18',
-      score: 72,
-      feedback: 'Solid understanding of basics. Focus on scalability considerations and trade-offs.',
-      status: 'Completed'
-    }
-  ]);
+  const [sessions, setSessions] = useState<InterviewSession[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const router = useRouter();
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -87,6 +62,10 @@ export default function MockInterview() {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  
+  // State for tracking session modal
+  const [modalSessionId, setModalSessionId] = useState<number | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // New state variables for enhanced functionality
   const [interviewStep, setInterviewStep] = useState<'setup' | 'recording' | 'results'>('setup');
@@ -103,6 +82,99 @@ export default function MockInterview() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+  // Fetch past interview results
+  const fetchPastResults = async (candidateId: string) => {
+    if (!candidateId) return;
+    
+    setIsLoadingSessions(true);
+    try {
+      const response = await fetch(`${API_URL}/api/mock-interviews/results/${candidateId}`);
+      const data = await response.json();
+      
+      if (response.ok && data.results) {
+        // Convert the MongoDB results to our InterviewSession format
+        const formattedSessions = data.results.map((result: any, index: number) => ({
+          id: index + 1,
+          type: result.type || 'Technical',
+          duration: result.duration || '40 seconds',
+          completedDate: new Date(result.completedAt).toLocaleDateString(),
+          score: Math.round(result.score),
+          feedback: result.feedback || 'No feedback available',
+          question: result.question || 'No question available',
+          deliveryFeedback: result.deliveryFeedback || [],
+          status: 'Completed' as const
+        }));
+        
+        setSessions(formattedSessions);
+      } else {
+        toast.error(data.error || 'Failed to fetch past results');
+      }
+    } catch (error) {
+      toast.error('Network error when fetching past results');
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+  
+  // Save current interview result
+  const saveInterviewResult = async (analysisData: any) => {
+    if (!candidateData || !analysisData || !generatedQuestion) {
+      console.error('Missing required data for saving result:', { 
+        hasCandidateData: !!candidateData, 
+        hasAnalysisData: !!analysisData, 
+        hasGeneratedQuestion: !!generatedQuestion 
+      });
+      return;
+    }
+    
+    const resultData = {
+      candidateId: candidateData._id,
+      question: generatedQuestion.question,
+      answer: transcribedAnswer,
+      score: Math.round(analysisData.weightedScore),
+      feedback: analysisData.geminiAnalysis.detailed_results[0]?.feedback,
+      contentScore: analysisData.geminiAnalysis.overall_score,
+      deliveryScore: analysisData.hrAnalysis.overall_score,
+      deliveryFeedback: analysisData.hrAnalysis.feedback_comments?.filter((comment: string) => 
+        !comment.toLowerCase().includes('filler word') && 
+        !comment.toLowerCase().includes('long pause') &&
+        !comment.toLowerCase().includes('speech clarity')
+      ) || [],
+      videoUrl: analysisData.hrAnalysis.video_url,
+      type: `${jobTitle || 'Software Developer'} - ${techStack}`,
+      duration: `${recordingTime} seconds`
+    };
+    
+    console.log('Saving interview result with data:', resultData);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/mock-interviews/save-result`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(resultData),
+      });
+      
+      console.log('Save result response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Save result response data:', data);
+      
+      if (response.ok) {
+        toast.success('Interview result saved successfully!');
+        // Refresh the sessions list
+        fetchPastResults(candidateData._id);
+      } else {
+        console.error('Failed to save result:', data.error);
+        toast.error(data.error || 'Failed to save interview result');
+      }
+    } catch (error) {
+      console.error('Network error when saving result:', error);
+      toast.error('Network error when saving result');
+    }
+  };
+
   useEffect(() => {
     const userType = localStorage.getItem('userType');
     const storedCandidateData = localStorage.getItem('candidateData');
@@ -112,7 +184,13 @@ export default function MockInterview() {
       return;
     }
     
-    setCandidateData(JSON.parse(storedCandidateData));
+    const parsedData = JSON.parse(storedCandidateData);
+    setCandidateData(parsedData);
+    
+    // Fetch past results when component mounts and candidateData is available
+    if (parsedData && parsedData._id) {
+      fetchPastResults(parsedData._id);
+    }
   }, [router]);
 
   // Countdown timer effect
@@ -410,6 +488,11 @@ export default function MockInterview() {
         setAnalysisResult(data);
         setInterviewStep('results');
         toast.success('Analysis complete!');
+        
+        // Save the interview result to the database
+        if (candidateData && candidateData._id) {
+          saveInterviewResult(data);
+        }
       } else {
         toast.error(data.error || 'Analysis failed');
       }
@@ -700,13 +783,17 @@ export default function MockInterview() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Average Score</span>
                   <span className="font-semibold">
-                    {Math.round(sessions.reduce((acc, s) => acc + s.score, 0) / sessions.length)}%
+                    {sessions.length > 0 
+                      ? `${Math.round(sessions.reduce((acc, s) => acc + s.score, 0) / sessions.length)}%` 
+                      : 'NA'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Best Score</span>
                   <span className="font-semibold text-green-600">
-                    {Math.max(...sessions.map(s => s.score))}%
+                    {sessions.length > 0 
+                      ? `${Math.max(...sessions.map(s => s.score))}%` 
+                      : 'NA'}
                   </span>
                 </div>
                 <div className="pt-2 border-t">
@@ -727,29 +814,118 @@ export default function MockInterview() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {sessions.map((session) => (
-                  <div key={session.id} className="border rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h4 className="font-medium text-gray-900">{session.type}</h4>
-                        <p className="text-sm text-gray-600">{session.duration}</p>
+                {/* Only show the 3 most recent sessions */}
+                {sessions.slice(0, 3).map((session) => {
+                  return (
+                    <div key={session.id} className="border rounded-lg p-4">
+                      <div 
+                        className="cursor-pointer" 
+                        onClick={() => {
+                          setModalSessionId(session.id);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h4 className="font-medium text-gray-900">{session.type}</h4>
+                            <p className="text-sm text-gray-600">{session.duration}</p>
+                          </div>
+                          <Badge className={getScoreBadgeColor(session.score)}>
+                            {session.score}%
+                          </Badge>
+                        </div>
+                        
+                        {/* Only show the question initially */}
+                        <p className="text-sm text-gray-700 mb-2 font-medium">
+                          {session.question || "Interview question not available"}
+                        </p>
+                        
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>Completed {session.completedDate}</span>
+                          <div className="flex items-center">
+                            <Star className="w-3 h-3 mr-1" />
+                            <span className={getScoreColor(session.score)}>
+                              {session.score >= 80 ? 'Excellent' : session.score >= 70 ? 'Good' : 'Needs Work'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <Badge className={getScoreBadgeColor(session.score)}>
-                        {session.score}%
-                      </Badge>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{session.feedback}</p>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Completed {session.completedDate}</span>
-                      <div className="flex items-center">
-                        <Star className="w-3 h-3 mr-1" />
-                        <span className={getScoreColor(session.score)}>
-                          {session.score >= 80 ? 'Excellent' : session.score >= 70 ? 'Good' : 'Needs Work'}
-                        </span>
+                  );
+                })}
+                
+                {/* Session Details Modal - Moved outside the map function */}
+                {isModalOpen && modalSessionId && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                      <div className="p-6 relative">
+                        <button 
+                          onClick={() => setIsModalOpen(false)}
+                          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                        
+                        {sessions.find(s => s.id === modalSessionId) && (
+                          <>
+                            <div className="mb-6">
+                              <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-2xl font-bold text-gray-900">
+                                  {sessions.find(s => s.id === modalSessionId)?.type}
+                                </h2>
+                                <Badge className={getScoreBadgeColor(sessions.find(s => s.id === modalSessionId)?.score || 0)}>
+                                  {sessions.find(s => s.id === modalSessionId)?.score}%
+                                </Badge>
+                              </div>
+                              
+                              <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+                                <div className="flex items-center">
+                                  <Clock className="w-4 h-4 mr-1" />
+                                  <span>{sessions.find(s => s.id === modalSessionId)?.duration}</span>
+                                </div>
+                                <div>
+                                  <span>Completed {sessions.find(s => s.id === modalSessionId)?.completedDate}</span>
+                                </div>
+                              </div>
+                              
+                              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+                                <h3 className="font-medium text-lg mb-2">Interview Question:</h3>
+                                <p className="mb-2">{sessions.find(s => s.id === modalSessionId)?.question}</p>
+                              </div>
+                            </div>
+                            
+                            <Tabs defaultValue="content">
+                              <TabsList className="w-full mb-4">
+                                <TabsTrigger value="content" className="flex-1">Content Analysis</TabsTrigger>
+                                <TabsTrigger value="delivery" className="flex-1">Delivery Analysis</TabsTrigger>
+                              </TabsList>
+                              
+                              <TabsContent value="content">
+                                <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
+                                  <div className="text-gray-600">
+                                    {renderMarkdownFeedback(sessions.find(s => s.id === modalSessionId)?.feedback || '')}
+                                  </div>
+                                </div>
+                              </TabsContent>
+                              
+                              <TabsContent value="delivery">
+                                <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+                                  <ul className="ml-4 list-disc">
+                                    {sessions.find(s => s.id === modalSessionId)?.deliveryFeedback?.map((comment: string, idx: number) => (
+                                      <li key={idx} className="mb-2 text-gray-700">{comment}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </TabsContent>
+                            </Tabs>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
-                ))}
+                )}
               </CardContent>
             </Card>
           </div>

@@ -232,6 +232,58 @@ router.post('/generate-questions', async (req, res) => {
   }
 });
 
+// Model for storing mock interview results
+import mongoose from 'mongoose';
+
+const MockInterviewResultSchema = new mongoose.Schema({
+  candidateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: 'Candidate'
+  },
+  question: {
+    type: String,
+    required: true
+  },
+  answer: {
+    type: String
+  },
+  type: {
+    type: String,
+    default: 'Technical'
+  },
+  duration: {
+    type: String,
+    default: '40 seconds'
+  },
+  score: {
+    type: Number,
+    required: true
+  },
+  feedback: {
+    type: String
+  },
+  contentScore: {
+    type: Number
+  },
+  deliveryScore: {
+    type: Number
+  },
+  deliveryFeedback: {
+    type: [String],
+    default: []
+  },
+  videoUrl: {
+    type: String
+  },
+  completedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+const MockInterviewResult = mongoose.model('MockInterviewResult', MockInterviewResultSchema);
+
 // POST /api/mock-interviews/analyze
 router.post('/analyze', upload.single('video'), async (req, res) => {
   try {
@@ -359,6 +411,77 @@ router.post('/analyze', upload.single('video'), async (req, res) => {
   } catch (err) {
     console.error('Server error:', err);
     res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
+
+// POST /api/mock-interviews/save-result
+router.post('/save-result', async (req, res) => {
+  try {
+    const { 
+      candidateId, 
+      question, 
+      answer, 
+      score, 
+      feedback, 
+      contentScore, 
+      deliveryScore, 
+      deliveryFeedback,
+      videoUrl,
+      type = 'Technical',
+      duration
+    } = req.body;
+    
+    if (!candidateId || !question || !score) {
+      return res.status(400).json({ error: 'CandidateId, question, and score are required' });
+    }
+
+    const newResult = new MockInterviewResult({
+      candidateId,
+      question,
+      answer,
+      score,
+      feedback,
+      contentScore,
+      deliveryScore,
+      deliveryFeedback,
+      videoUrl,
+      type,
+      duration: duration || '40 seconds',
+      completedAt: new Date()
+    });
+
+    await newResult.save();
+    
+    res.status(201).json({ 
+      message: 'Interview result saved successfully',
+      result: newResult
+    });
+  } catch (error) {
+    console.error('Error saving interview result:', error);
+    res.status(500).json({ error: 'Failed to save interview result' });
+  }
+});
+
+// GET /api/mock-interviews/results/:candidateId
+router.get('/results/:candidateId', async (req, res) => {
+  try {
+    const { candidateId } = req.params;
+    
+    if (!candidateId) {
+      return res.status(400).json({ error: 'CandidateId is required' });
+    }
+
+    const results = await MockInterviewResult.find({ candidateId })
+      .sort({ completedAt: -1 }) // Sort by completedAt in descending order (newest first)
+      .exec();
+    
+    res.json({ 
+      message: 'Interview results retrieved successfully',
+      results
+    });
+  } catch (error) {
+    console.error('Error retrieving interview results:', error);
+    res.status(500).json({ error: 'Failed to retrieve interview results' });
   }
 });
 
