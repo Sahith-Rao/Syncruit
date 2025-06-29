@@ -363,6 +363,24 @@ export default function MyApplications() {
                 <span className="flex items-center gap-1"><DollarSign className="w-4 h-4" />{app.job.salary}</span>
                 <span className="flex items-center gap-1"><Calendar className="w-4 h-4" />Applied on {format(new Date(app.appliedAt), 'MMM d, yyyy')}</span>
               </div>
+              
+              {/* Start Interview Button */}
+              {app.shortlisted &&
+               (app.job.interviewStatus === 'Ready' || app.job.status === 'Interviews Open') &&
+               (!app.interviewStatus || app.interviewStatus === 'Not Started') &&
+               app.status !== 'Reviewing' &&
+               app.status !== 'Not Selected' &&
+               app.status !== 'Interview Expired' && (
+                <div className="mt-4">
+                  <Button 
+                    className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2"
+                    onClick={() => startInterview(app._id)}
+                  >
+                    <Play className="w-4 h-4" />
+                    Start Interview
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>

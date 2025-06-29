@@ -1,26 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import CandidateNavbar from '@/components/candidate-navbar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
-  Mic, 
-  MicOff, 
+  Video, 
   Play, 
-  Pause, 
-  Volume2, 
-  VolumeX,
+  Square, 
+  RotateCcw,
   Lightbulb,
   CheckCircle,
   Star,
   Loader,
   ArrowLeft,
-  Save
+  Save,
+  Camera,
+  Send,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -40,6 +41,9 @@ interface Interview {
   status: string;
   overallRating?: number;
   feedback?: string;
+  contentScore?: number;
+  deliveryScore?: number;
+  weightedScore?: number;
 }
 
 interface InterviewResponse {
@@ -47,15 +51,17 @@ interface InterviewResponse {
   userAnswer: string;
   feedback: string;
   rating: number;
+  videoUrl?: string;
+  contentFeedback?: string;
+  deliveryFeedback?: string[];
+  contentRating?: number;
+  deliveryRating?: number;
 }
 
 export default function InterviewPage() {
   const [candidateData, setCandidateData] = useState<any>(null);
   const [interview, setInterview] = useState<Interview | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [userAnswer, setUserAnswer] = useState('');
   const [responses, setResponses] = useState<InterviewResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -63,6 +69,30 @@ export default function InterviewPage() {
   const router = useRouter();
   const params = useParams();
   const interviewId = params.interviewId as string;
+
+  // Video recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [recordedVideo, setRecordedVideo] = useState<Blob | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  
+  // Speech recognition states
+  const [transcribedAnswer, setTranscribedAnswer] = useState('');
+  const [recognition, setRecognition] = useState<any>(null);
+  
+  // Countdown states
+  const [countdown, setCountdown] = useState(10);
+  const [isCountingDown, setIsCountingDown] = useState(false);
+  const [recordingTimeLimit] = useState(40);
+  
+  // Analysis states
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // Track if the current question has been attempted
+  const [questionAttempted, setQuestionAttempted] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -79,6 +109,98 @@ export default function InterviewPage() {
     setCandidateData(parsedData);
     fetchInterview();
   }, [router, interviewId]);
+  
+  // Reset questionAttempted when current question changes
+  useEffect(() => {
+    setQuestionAttempted(false);
+  }, [currentQuestionIndex]);
+  
+  // Auto-start countdown only when question is first displayed and not attempted
+  useEffect(() => {
+    if (interview && !isCountingDown && !isRecording && !recordedVideo && !questionAttempted) {
+      setCountdown(10);
+      setIsCountingDown(true);
+      setQuestionAttempted(true); // Mark as attempted so countdown doesn't restart
+    }
+  }, [interview, currentQuestionIndex, isCountingDown, isRecording, recordedVideo, questionAttempted]);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // @ts-ignore - SpeechRecognition is not in the TypeScript types
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+        
+        recognition.onresult = (event: any) => {
+          let interimTranscript = '';
+          let finalTranscript = '';
+          
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+          
+          setTranscribedAnswer(prevTranscript => prevTranscript + finalTranscript);
+        };
+        
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error', event.error);
+          toast.error(`Speech recognition error: ${event.error}`);
+        };
+        
+        setRecognition(recognition);
+      }
+    }
+    
+    return () => {
+      if (recognition) {
+        try {
+          recognition.stop();
+        } catch (e) {
+          // Ignore errors when stopping recognition
+        }
+      }
+    };
+  }, []);
+
+  // Countdown timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isCountingDown && countdown > 0) {
+      interval = setInterval(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (isCountingDown && countdown === 0) {
+      setIsCountingDown(false);
+      startRecording();
+    }
+    return () => clearInterval(interval);
+  }, [isCountingDown, countdown]);
+
+  // Recording time limit effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingTime(prev => {
+          if (prev >= recordingTimeLimit - 1) {
+            stopRecording();
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording, recordingTimeLimit]);
 
   const fetchInterview = async () => {
     setLoading(true);
@@ -103,93 +225,104 @@ export default function InterviewPage() {
     }
   };
 
-  const startSpeechRecognition = () => {
-    // Type guards for browser compatibility
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-        setIsRecording(true);
-        setUserAnswer('');
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      setMediaStream(stream);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      
+      let localChunks: Blob[] = [];
+      const recorder = new MediaRecorder(stream);
+      setMediaRecorder(recorder);
+      setRecordedVideo(null);
+      setTranscribedAnswer(''); // Reset transcribed answer
+      
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          localChunks.push(event.data);
+        }
       };
-
-      recognition.onresult = (event: any) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
-          } else {
-            interimTranscript += transcript;
+      
+      recorder.onstop = () => {
+        const blob = new Blob(localChunks, { type: 'video/webm' });
+        setRecordedVideo(blob);
+        stream.getTracks().forEach((track) => track.stop());
+        setMediaStream(null);
+        
+        // Stop speech recognition when recording stops
+        if (recognition) {
+          try {
+            recognition.stop();
+          } catch (e) {
+            // Ignore errors when stopping recognition
           }
         }
-
-        setUserAnswer(finalTranscript + interimTranscript);
       };
-
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setIsRecording(false);
-        toast.error('Speech recognition error');
-      };
-
-      recognition.onend = () => {
-        setIsRecording(false);
-      };
-
-      recognition.start();
-    } else {
-      toast.error('Speech recognition not supported in this browser');
-    }
-  };
-
-  const stopSpeechRecognition = () => {
-    setIsRecording(false);
-    // The recognition will stop automatically when we set isRecording to false
-  };
-
-  const playQuestion = (question: string) => {
-    if ('speechSynthesis' in window) {
-      if (isPlaying) {
-        window.speechSynthesis.cancel();
-        setIsPlaying(false);
+      
+      recorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      // Start speech recognition
+      if (recognition) {
+        try {
+          recognition.start();
+          toast.success('Recording and speech recognition started! Answer the question naturally.');
+        } catch (e) {
+          toast.error('Failed to start speech recognition. Your answer may not be transcribed.');
+        }
       } else {
-        const utterance = new SpeechSynthesisUtterance(question);
-        utterance.onend = () => setIsPlaying(false);
-        utterance.onerror = () => setIsPlaying(false);
-        window.speechSynthesis.speak(utterance);
-        setIsPlaying(true);
+        toast.warning('Speech recognition not available in your browser. Your answer may not be analyzed for content.');
       }
-    } else {
-      toast.error('Speech synthesis not supported in this browser');
+    } catch (err) {
+      toast.error('Could not access camera/microphone.');
     }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    
+    // Stop speech recognition
+    if (recognition) {
+      try {
+        recognition.stop();
+      } catch (e) {
+        // Ignore errors when stopping recognition
+      }
+    }
+    
+    setIsRecording(false);
+    toast.success('Recording stopped! Your answer will be analyzed shortly.');
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const submitAnswer = async () => {
-    if (!userAnswer.trim()) {
-      toast.error('Please provide an answer');
+    if (!recordedVideo) {
+      toast.error('Please record a video first.');
       return;
     }
 
     setSubmitting(true);
     try {
+      const formData = new FormData();
+      formData.append('video', recordedVideo, 'interview.webm');
+      formData.append('interviewId', interviewId);
+      formData.append('question', interview?.questions[currentQuestionIndex].question || '');
+      formData.append('userAnswer', transcribedAnswer || '');
+      
       const response = await fetch(`${API_URL}/api/interviews/submit-answer`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          interviewId,
-          question: interview?.questions[currentQuestionIndex].question,
-          userAnswer: userAnswer.trim()
-        }),
+        body: formData,
       });
 
       const data = await response.json();
@@ -197,13 +330,20 @@ export default function InterviewPage() {
       if (response.ok) {
         const newResponse: InterviewResponse = {
           question: interview?.questions[currentQuestionIndex].question || '',
-          userAnswer: userAnswer.trim(),
-          feedback: data.feedback.feedback,
-          rating: data.feedback.ratings
+          userAnswer: transcribedAnswer || '',
+          feedback: data.contentFeedback || 'No feedback available',
+          rating: data.contentRating || 0,
+          videoUrl: data.videoUrl || '',
+          contentFeedback: data.contentFeedback || '',
+          deliveryFeedback: data.deliveryFeedback || [],
+          contentRating: data.contentRating || 0,
+          deliveryRating: data.deliveryRating || 0
         };
 
         setResponses([...responses, newResponse]);
-        setUserAnswer('');
+        setRecordedVideo(null);
+        setTranscribedAnswer('');
+        setRecordingTime(0);
         
         toast.success('Answer submitted successfully!');
         
@@ -249,6 +389,67 @@ export default function InterviewPage() {
       console.error('Error completing interview:', error);
       toast.error('Failed to complete interview');
     }
+  };
+
+  // Helper function to render Markdown feedback
+  const renderMarkdownFeedback = (feedback: string) => {
+    if (!feedback) return null;
+    
+    // Split the feedback into sections based on headings
+    const sections = feedback.split(/(?=## )/);
+    
+    return (
+      <div className="space-y-4">
+        {sections.map((section, index) => {
+          // Skip empty sections or Accuracy section
+          if (!section.trim() || section.trim().startsWith('## Accuracy')) return null;
+          
+          // Check if this section has a heading
+          const hasHeading = section.startsWith('## ');
+          
+          if (hasHeading) {
+            // Extract heading text
+            const headingMatch = section.match(/## ([^\n]+)/);
+            const headingText = headingMatch ? headingMatch[1] : '';
+            
+            // Get content after heading
+            const contentAfterHeading = section.replace(/## [^\n]+\n/, '');
+            
+            // Split content into bullet points
+            const bulletPoints = contentAfterHeading
+              .split('\n')
+              .filter(line => line.trim().startsWith('* '))
+              .map(line => line.replace('* ', '').trim());
+            
+            return (
+              <div key={index} className="feedback-section">
+                <h3 className="text-md font-semibold text-blue-700 mb-2">{headingText}</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  {bulletPoints.map((point, i) => (
+                    <li key={i} className="text-gray-600">{point}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          } else {
+            // If no heading, just render as text
+            return <p key={index}>{section}</p>;
+          }
+        })}
+      </div>
+    );
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 70) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getScoreBadgeColor = (score: number) => {
+    if (score >= 80) return 'bg-green-100 text-green-800';
+    if (score >= 70) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
   };
 
   if (loading) {
@@ -339,71 +540,92 @@ export default function InterviewPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <p className="text-lg text-gray-700">{currentQuestion.question}</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => playQuestion(currentQuestion.question)}
-                >
-                  {isPlaying ? (
-                    <>
-                      <Pause className="w-4 h-4 mr-2" />
-                      Stop
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="w-4 h-4 mr-2" />
-                      Play
-                    </>
-                  )}
-                </Button>
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                <h3 className="font-medium text-lg mb-2">Interview Question:</h3>
+                <p className="mb-2">{currentQuestion.question}</p>
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <Button
-                    onClick={isRecording ? stopSpeechRecognition : startSpeechRecognition}
-                    variant={isRecording ? "destructive" : "default"}
-                    disabled={submitting}
-                  >
-                    {isRecording ? (
-                      <>
-                        <MicOff className="w-4 h-4 mr-2" />
-                        Stop Recording
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="w-4 h-4 mr-2" />
-                        Start Recording
-                      </>
-                    )}
-                  </Button>
-
-                  {userAnswer && (
-                    <Button
-                      onClick={submitAnswer}
-                      disabled={submitting || !userAnswer.trim()}
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader className="w-4 h-4 mr-2 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          Submit Answer
-                        </>
-                      )}
-                    </Button>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">
+                    Recording Time: {formatTime(recordingTime)}
+                  </span>
+                  {isRecording && (
+                    <Badge className="bg-red-100 text-red-800 animate-pulse">
+                      Recording
+                    </Badge>
                   )}
                 </div>
+                
+                {isRecording && (
+                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <h6 className="text-sm font-medium text-gray-700 mb-1">Speech Recognition (Live):</h6>
+                    <p className="text-gray-600 text-sm italic">
+                      {transcribedAnswer || "Listening for your answer..."}
+                    </p>
+                  </div>
+                )}
 
-                {userAnswer && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-semibold mb-2">Your Answer:</h4>
-                    <p className="text-gray-700">{userAnswer}</p>
+                {isCountingDown ? (
+                  <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                    <div className="text-4xl font-bold text-purple-600 mb-4">{countdown}</div>
+                    <p className="text-gray-600">Recording will start automatically...</p>
+                  </div>
+                ) : isRecording ? (
+                  <div className="space-y-4">
+                    <video ref={videoRef} autoPlay muted className="w-full rounded-lg border" />
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        Time Remaining: {formatTime(recordingTimeLimit - recordingTime)}
+                      </span>
+                    </div>
+                    <Button onClick={stopRecording} variant="destructive" className="w-full">
+                      <Square className="w-4 h-4 mr-2" />
+                      Stop Recording
+                    </Button>
+                  </div>
+                ) : recordedVideo ? (
+                  <div className="space-y-4">
+                    <video controls className="w-full rounded-lg border">
+                      <source src={URL.createObjectURL(recordedVideo)} type="video/webm" />
+                    </video>
+                    <div className="flex gap-2">
+                      <Button onClick={() => {
+                        setQuestionAttempted(true); // Mark as attempted so countdown doesn't restart
+                        setCountdown(10);
+                        setIsCountingDown(true);
+                      }} variant="outline" className="flex-1">
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Record Again
+                      </Button>
+                      <Button onClick={submitAnswer} disabled={submitting} className="flex-1">
+                        {submitting ? (
+                          <>
+                            <Loader className="w-4 h-4 mr-2 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4 mr-2" />
+                            Submit Answer
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                    <Button 
+                      onClick={() => {
+                        setQuestionAttempted(true); // Mark as attempted so countdown doesn't restart
+                        setCountdown(10);
+                        setIsCountingDown(true);
+                      }} 
+                      className="mx-auto"
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      Start Recording
+                    </Button>
                   </div>
                 )}
               </div>
@@ -439,4 +661,4 @@ export default function InterviewPage() {
       </div>
     </div>
   );
-} 
+}
