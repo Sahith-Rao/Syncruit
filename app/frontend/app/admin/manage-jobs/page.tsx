@@ -19,7 +19,8 @@ import {
   Users,
   Building2,
   ListChecks,
-  XCircle
+  XCircle,
+  Wallet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -246,7 +247,7 @@ export default function ManageJobs() {
                         {job.location}
                       </div>
                       <div className="flex items-center">
-                        <DollarSign className="w-4 h-4 mr-1" />
+                        <Wallet className="w-4 h-4 mr-1" />
                         {job.salary}
                       </div>
                       <div className="flex items-center">

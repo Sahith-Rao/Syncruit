@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import AdminNavbar from '@/components/admin-navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Briefcase, Users, FileText, TrendingUp, Eye, MapPin, DollarSign, Clock, AlertTriangle } from 'lucide-react';
+import { Briefcase, Users, FileText, TrendingUp, Eye, MapPin, DollarSign, Clock, AlertTriangle, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInDays, parseISO } from 'date-fns';
 
@@ -188,7 +188,7 @@ export default function AdminDashboard() {
                               <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{job.location}</span>
                             )}
                             {job.salary && (
-                              <span className="flex items-center gap-1"><DollarSign className="w-4 h-4" />{job.salary}</span>
+                              <span className="flex items-center gap-1"><Wallet className="w-4 h-4" />{job.salary}</span>
                             )}
                           </div>
                         </div>
@@ -237,7 +237,7 @@ export default function AdminDashboard() {
                             <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{job.location}</span>
                           )}
                           {job.salary && (
-                            <span className="flex items-center gap-1"><DollarSign className="w-4 h-4" />{job.salary}</span>
+                            <span className="flex items-center gap-1"><Wallet className="w-4 h-4" />{job.salary}</span>
                           )}
                         </div>
                       </div>

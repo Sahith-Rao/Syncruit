@@ -513,8 +513,7 @@ export default function MockInterview() {
       
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Mock Interview</h1>
-          <p className="text-gray-600 mt-2">Practice your interview skills with AI-powered feedback</p>
+          <h1 className="text-3xl font-bold text-gray-900">Practice Interview</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -524,7 +523,6 @@ export default function MockInterview() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Settings className="w-5 h-5 mr-2 text-purple-600" />
                     Interview Setup
                   </CardTitle>
                   <CardDescription>
@@ -542,15 +540,13 @@ export default function MockInterview() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="techStack" className="text-red-500">Tech Stack (Required)</Label>
+                    <Label htmlFor="techStack">Tech Stack</Label>
                     <Input
                       id="techStack"
                       placeholder="e.g., React, Node.js, TypeScript"
                       value={techStack}
                       onChange={(e) => setTechStack(e.target.value)}
-                      required
                     />
-                    <p className="text-xs text-gray-500 mt-1">Specify technologies for a targeted question</p>
                   </div>
                   <div>
                     <Label htmlFor="experienceLevel">Experience Level</Label>
@@ -565,21 +561,18 @@ export default function MockInterview() {
                       <option value="Senior">Senior</option>
                     </select>
                   </div>
-                  <Button 
-                    onClick={generateQuestion} 
-                    disabled={isGeneratingQuestions || !techStack.trim()}
-                    className="w-full mt-4"
+                  <Button
+                    onClick={generateQuestion}
+                    disabled={isGeneratingQuestions}
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
                   >
                     {isGeneratingQuestions ? (
-                      <>
-                        <Loader className="w-4 h-4 mr-2 animate-spin" />
-                        Generating Question...
-                      </>
+                      <span className="flex items-center justify-center">
+                        <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                        Generating...
+                      </span>
                     ) : (
-                      <>
-                        <ArrowRight className="w-4 h-4 mr-2" />
-                        Generate Interview Question
-                      </>
+                      'Generate Interview'
                     )}
                   </Button>
                 </CardContent>
@@ -709,8 +702,8 @@ export default function MockInterview() {
 
                   <Tabs defaultValue="content">
                     <TabsList className="w-full mb-4">
-                      <TabsTrigger value="content" className="flex-1">Content Analysis</TabsTrigger>
-                      <TabsTrigger value="delivery" className="flex-1">Delivery Analysis</TabsTrigger>
+                      <TabsTrigger value="content">Content Analysis</TabsTrigger>
+                      <TabsTrigger value="delivery">Delivery Analysis</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="content">
@@ -898,8 +891,8 @@ export default function MockInterview() {
                             
                             <Tabs defaultValue="content">
                               <TabsList className="w-full mb-4">
-                                <TabsTrigger value="content" className="flex-1">Content Analysis</TabsTrigger>
-                                <TabsTrigger value="delivery" className="flex-1">Delivery Analysis</TabsTrigger>
+                                <TabsTrigger value="content">Content Analysis</TabsTrigger>
+                                <TabsTrigger value="delivery">Delivery Analysis</TabsTrigger>
                               </TabsList>
                               
                               <TabsContent value="content">

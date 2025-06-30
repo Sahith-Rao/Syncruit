@@ -72,7 +72,7 @@ export default function CandidateLogin() {
             </div>
             <CardTitle className="text-2xl font-bold">Candidate Login</CardTitle>
             <CardDescription>
-              Sign in to your account to browse jobs and manage applications
+              Sign in to your account to continue
             </CardDescription>
           </CardHeader>
           <CardContent>

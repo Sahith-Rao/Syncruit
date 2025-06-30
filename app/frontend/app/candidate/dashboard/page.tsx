@@ -14,11 +14,12 @@ import {
   Calendar, 
   Briefcase,
   Filter,
-  Heart,
   ExternalLink,
   FileText,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Building,
+  Wallet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -69,6 +70,7 @@ interface Application {
 export default function CandidateDashboard() {
   const [candidateData, setCandidateData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchField, setSearchField] = useState<'all' | 'title' | 'company' | 'location'>('all');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   const [isApplying, setIsApplying] = useState(false);
@@ -76,6 +78,7 @@ export default function CandidateDashboard() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -130,28 +133,23 @@ export default function CandidateDashboard() {
 
   const handleResumeSubmit = async () => {
     if (!resumeFile || !selectedJob || !selectedJob.description) return;
-
+    setIsSubmitting(true);
     const formData = new FormData();
     formData.append('resume', resumeFile);
     formData.append('jobDescription', selectedJob.description);
     formData.append('candidateId', candidateData._id);
     formData.append('jobId', selectedJob._id);
-
     try {
       const res = await fetch('http://localhost:5000/api/analyze/resume', {
         method: 'POST',
         body: formData,
       });
-
       if (!res.ok) {
         throw new Error('Resume analysis failed');
       }
-
       const { score, application } = await res.json();
-
       setAppliedJobIds(prev => new Set(prev).add(application.job));
       if (candidateData?._id) fetchAppliedJobs(candidateData._id);
-
       const newApplication = {
         jobId: selectedJob._id,
         jobTitle: selectedJob.title,
@@ -161,11 +159,9 @@ export default function CandidateDashboard() {
         score: score,
         applicationId: application?._id,
       };
-
       const existingApplications = JSON.parse(localStorage.getItem('candidateApplications') || '[]');
       const updatedApplications = [...existingApplications, newApplication];
       localStorage.setItem('candidateApplications', JSON.stringify(updatedApplications));
-      
       toast.success(`Successfully applied for ${selectedJob.title}!`);
       setIsApplying(false);
       setResumeFile(null);
@@ -174,15 +170,29 @@ export default function CandidateDashboard() {
       console.error(error);
       toast.error('Failed to apply. Please try again.');
     }
+    setIsSubmitting(false);
   };
 
   const availableJobs = jobs.filter(job => !appliedJobIds.has(job._id.toString()));
 
-  const filteredJobs = availableJobs.filter(job =>
-    job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    job.location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredJobs = availableJobs.filter(job => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    if (searchField === 'all') {
+      return (
+        job.title.toLowerCase().includes(term) ||
+        job.company.toLowerCase().includes(term) ||
+        job.location.toLowerCase().includes(term)
+      );
+    } else if (searchField === 'title') {
+      return job.title.toLowerCase().includes(term);
+    } else if (searchField === 'company') {
+      return job.company.toLowerCase().includes(term);
+    } else if (searchField === 'location') {
+      return job.location.toLowerCase().includes(term);
+    }
+    return true;
+  });
 
   const stats = getCandidateStats(applications);
 
@@ -198,7 +208,7 @@ export default function CandidateDashboard() {
           <h1 className="text-3xl font-bold text-gray-900">
             Welcome back, {candidateData.firstName}!
           </h1>
-          <p className="text-gray-600 mt-2">Discover your next career opportunity</p>
+          <p className="text-gray-600 mt-2">Find and apply for jobs that match your skills</p>
         </div>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -243,23 +253,36 @@ export default function CandidateDashboard() {
             </CardContent>
           </Card>
         </div>
-        {/* Search and Filter */}
+        {/* Search and Filters */}
         <Card className="mb-8">
           <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="relative flex-grow w-full">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search jobs, companies, or locations..."
+                  placeholder="Search by title, company, or location"
                   className="pl-10"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button variant="outline" className="flex items-center">
-                <Filter className="w-4 h-4 mr-2" />
-                Filters
-              </Button>
+              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-full">
+                {(['all', 'title', 'company', 'location'] as const).map(field => (
+                  <Button
+                    key={field}
+                    variant="ghost"
+                    size="sm"
+                    className={`rounded-full capitalize px-4 py-1 h-auto text-sm ${
+                      searchField === field
+                        ? 'bg-purple-600 text-white hover:bg-purple-700'
+                        : 'text-gray-600 hover:bg-gray-200'
+                    }`}
+                    onClick={() => setSearchField(field)}
+                  >
+                    {field}
+                  </Button>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -275,16 +298,13 @@ export default function CandidateDashboard() {
                         <h3 className="text-xl font-semibold text-gray-900 mb-1">{job.title}</h3>
                         <p className="text-lg text-gray-700 font-medium">{job.company}</p>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500">
-                        <Heart className="w-4 h-4" />
-                      </Button>
                     </div>
                     <div className="flex flex-wrap gap-2 mb-2">
                       <Badge variant="secondary">
                         <MapPin className="w-4 h-4 mr-1 inline" /> {job.location}
                       </Badge>
                       <Badge variant="secondary">
-                        <DollarSign className="w-4 h-4 mr-1 inline" /> {job.salary}
+                        <span className="flex items-center gap-1"><Wallet className="w-4 h-4 mr-1 inline" /> {job.salary}</span>
                       </Badge>
                       {job.jobType && (
                         <Badge variant="secondary">
@@ -334,16 +354,6 @@ export default function CandidateDashboard() {
                     >
                       Apply
                     </Button>
-                    <Button
-                      variant="outline"
-                      asChild
-                      className="flex items-center gap-2"
-                    >
-                      <a href="#" target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="w-4 h-4" />
-                        View Details
-                      </a>
-                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -375,8 +385,19 @@ export default function CandidateDashboard() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsApplying(false)}>Cancel</Button>
-            <Button onClick={handleResumeSubmit} disabled={!resumeFile}>
-              Submit Application
+            <Button
+              onClick={handleResumeSubmit}
+              disabled={isSubmitting || !resumeFile}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center justify-center">
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                  Submitting...
+                </span>
+              ) : (
+                'Submit Application'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -395,7 +416,7 @@ export default function CandidateDashboard() {
             </div>
             <div className="flex gap-4 text-sm text-gray-600">
               <span><MapPin className="inline w-4 h-4 mr-1" />{jobs.find(job => job._id === openJobId)?.location}</span>
-              <span><DollarSign className="inline w-4 h-4 mr-1" />{jobs.find(job => job._id === openJobId)?.salary}</span>
+              <span><span className="flex items-center gap-1"><Wallet className="w-4 h-4 mr-1 inline" /> {jobs.find(job => job._id === openJobId)?.salary}</span></span>
             </div>
           </DialogContent>
         </Dialog>

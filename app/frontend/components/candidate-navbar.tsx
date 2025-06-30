@@ -11,7 +11,8 @@ import {
   Video,
   LogOut, 
   Menu, 
-  X 
+  X,
+  GraduationCap
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,7 +32,7 @@ export default function CandidateNavbar() {
     { name: 'Browse Jobs', href: '/candidate/dashboard', icon: Search },
     { name: 'My Applications', href: '/candidate/applications', icon: FileText },
     { name: 'My Profile', href: '/candidate/profile', icon: User },
-    { name: 'Mock Interview', href: '/candidate/mock-interview', icon: Video },
+    { name: 'Practice Interview', href: '/candidate/mock-interview', icon: GraduationCap },
   ];
 
   return (

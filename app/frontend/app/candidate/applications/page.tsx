@@ -21,7 +21,8 @@ import {
   XCircle,
   BarChart,
   Play,
-  Mic
+  Mic,
+  Wallet
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -360,7 +361,7 @@ export default function MyApplications() {
               <div className="flex flex-wrap gap-6 text-gray-600 mt-3 text-sm md:text-base">
                 <span className="flex items-center gap-1"><Building className="w-4 h-4" />{app.job.company}</span>
                 <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{app.job.location}</span>
-                <span className="flex items-center gap-1"><DollarSign className="w-4 h-4" />{app.job.salary}</span>
+                <span className="flex items-center gap-1"><Wallet className="w-4 h-4" />{app.job.salary}</span>
                 <span className="flex items-center gap-1"><Calendar className="w-4 h-4" />Applied on {format(new Date(app.appliedAt), 'MMM d, yyyy')}</span>
               </div>
               
@@ -412,7 +413,7 @@ export default function MyApplications() {
               </div>
               <div className="flex gap-4 text-sm text-gray-600">
                 <span><MapPin className="inline w-4 h-4 mr-1" />{applications.find(app => app.job._id === openJobId)?.job.location}</span>
-                <span><DollarSign className="inline w-4 h-4 mr-1" />{applications.find(app => app.job._id === openJobId)?.job.salary}</span>
+                <span><Wallet className="inline w-4 h-4 mr-1" />{applications.find(app => app.job._id === openJobId)?.job.salary}</span>
               </div>
             </DialogContent>
           </Dialog>

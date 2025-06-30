@@ -227,12 +227,12 @@ export default function ViewApplications() {
                 <label className="font-medium">Select Candidates:</label>
                 <label className="font-medium">Top</label>
                 <Input
-                  type="number"
-                  min={0}
-                  value={topN}
-                  onChange={e => setTopN(Number(e.target.value))}
+                    type="number"
+                    min={0}
+                    value={topN}
+                    onChange={e => setTopN(Number(e.target.value))}
                   className="w-20"
-                />
+                  />
                 <Button onClick={openShortlistDialog} className="bg-blue-600 hover:bg-blue-700 flex items-center">
                   <Star className="w-4 h-4 mr-2" />
                   Shortlist Top {topN}
@@ -308,12 +308,12 @@ export default function ViewApplications() {
                 <label className="font-medium">Select Candidates:</label>
                 <label className="font-medium">Top</label>
                 <Input
-                  type="number"
-                  min={0}
-                  value={topN}
-                  onChange={e => setTopN(Number(e.target.value))}
+                    type="number"
+                    min={0}
+                    value={topN}
+                    onChange={e => setTopN(Number(e.target.value))}
                   className="w-20"
-                />
+                  />
                 <Button
                   variant="default"
                   disabled={selecting}
