@@ -7,8 +7,8 @@ import { AuthProvider } from '@/src/contexts/AuthContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Syncruit - Connect Talent with Opportunity',
-  description: 'Leading job portal connecting top talent with leading companies',
+  title: 'Syncruit',
+  description: 'Where Talent and Hiring Sync Perfectly',
 };
 
 export default function RootLayout({
@@ -18,6 +18,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.png" sizes="any" />
+      </head>
       <body className={inter.className}>
         <AuthProvider>
           {children}

@@ -86,6 +86,8 @@ export default function InterviewPage() {
   const [countdown, setCountdown] = useState(10);
   const [isCountingDown, setIsCountingDown] = useState(false);
   const [recordingTimeLimit] = useState(40);
+  const [recordingFailed, setRecordingFailed] = useState(false);
+  const [startingInterview, setStartingInterview] = useState(false);
   
   // Analysis states
   const [analysisResult, setAnalysisResult] = useState<any>(null);
@@ -181,6 +183,7 @@ export default function InterviewPage() {
     } else if (isCountingDown && countdown === 0) {
       setIsCountingDown(false);
       startRecording();
+      setStartingInterview(false);
     }
     return () => clearInterval(interval);
   }, [isCountingDown, countdown]);
@@ -201,6 +204,44 @@ export default function InterviewPage() {
     }
     return () => clearInterval(interval);
   }, [isRecording, recordingTimeLimit]);
+
+  // Abandon interview if user leaves without submitting any answers
+  useEffect(() => {
+    const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
+      if (
+        interview &&
+        !completed &&
+        responses.length === 0 &&
+        interviewId
+      ) {
+        // Send abandon request (fire and forget)
+        navigator.sendBeacon(
+          `${API_URL}/api/interviews/abandon`,
+          JSON.stringify({ interviewId })
+        );
+        // Optionally show a warning (not always shown in modern browsers)
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Also handle React navigation (SPA route change)
+      if (
+        interview &&
+        !completed &&
+        responses.length === 0 &&
+        interviewId
+      ) {
+        fetch(`${API_URL}/api/interviews/abandon`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ interviewId })
+        });
+      }
+    };
+  }, [interview, completed, responses.length, interviewId]);
 
   const fetchInterview = async () => {
     setLoading(true);
@@ -226,6 +267,7 @@ export default function InterviewPage() {
   };
 
   const startRecording = async () => {
+    setRecordingFailed(false);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setMediaStream(stream);
@@ -279,6 +321,8 @@ export default function InterviewPage() {
       }
     } catch (err) {
       toast.error('Could not access camera/microphone.');
+      setRecordingFailed(true);
+      setStartingInterview(false);
     }
   };
 
@@ -520,15 +564,6 @@ export default function InterviewPage() {
           <p className="text-gray-600 mt-2">{interview.job.title} at {interview.job.company}</p>
         </div>
 
-        <Alert className="mb-8 bg-sky-100 border border-sky-200">
-          <Lightbulb className="h-5 w-5 text-sky-600" />
-          <AlertTitle className="text-sky-800 font-semibold">Important Note</AlertTitle>
-          <AlertDescription className="text-sm text-sky-700 mt-1">
-            Press "Start Recording" to begin answering the question. Speak clearly and provide detailed responses.
-            You can stop recording anytime and re-record if needed.
-          </AlertDescription>
-        </Alert>
-
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -590,14 +625,6 @@ export default function InterviewPage() {
                       <source src={URL.createObjectURL(recordedVideo)} type="video/webm" />
                     </video>
                     <div className="flex gap-2">
-                      <Button onClick={() => {
-                        setQuestionAttempted(true); // Mark as attempted so countdown doesn't restart
-                        setCountdown(10);
-                        setIsCountingDown(true);
-                      }} variant="outline" className="flex-1">
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Record Again
-                      </Button>
                       <Button onClick={submitAnswer} disabled={submitting} className="flex-1">
                         {submitting ? (
                           <>
@@ -615,17 +642,29 @@ export default function InterviewPage() {
                   </div>
                 ) : (
                   <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
-                    <Button 
-                      onClick={() => {
-                        setQuestionAttempted(true); // Mark as attempted so countdown doesn't restart
-                        setCountdown(10);
-                        setIsCountingDown(true);
-                      }} 
-                      className="mx-auto"
-                    >
-                      <Camera className="w-4 h-4 mr-2" />
-                      Start Recording
-                    </Button>
+                    {(!questionAttempted || recordingFailed) && (
+                      <>
+                        {recordingFailed && (
+                          <p className="text-red-600 mb-2">Could not access camera/microphone. Please check your permissions and try again.</p>
+                        )}
+                        <Button 
+                          onClick={() => {
+                            setQuestionAttempted(true);
+                            setCountdown(10);
+                            setIsCountingDown(true);
+                            setStartingInterview(true);
+                          }} 
+                          className="mx-auto"
+                          disabled={startingInterview}
+                        >
+                          {startingInterview ? (
+                            <><Loader className="w-4 h-4 mr-2 animate-spin" />Starting...</>
+                          ) : (
+                            <><Camera className="w-4 h-4 mr-2" />Start Recording</>
+                          )}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

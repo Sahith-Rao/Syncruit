@@ -22,7 +22,8 @@ import {
   BarChart,
   Play,
   Mic,
-  Wallet
+  Wallet,
+  Loader
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -82,6 +83,7 @@ export default function MyApplications() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
+  const [startingInterviewId, setStartingInterviewId] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -111,6 +113,7 @@ export default function MyApplications() {
   };
 
   const startInterview = async (applicationId: string) => {
+    setStartingInterviewId(applicationId);
     try {
       const response = await fetch(`${API_URL}/api/interviews/start`, {
         method: 'POST',
@@ -133,6 +136,8 @@ export default function MyApplications() {
     } catch (error) {
       console.error('Error starting interview:', error);
       toast.error('Failed to start interview');
+    } finally {
+      setStartingInterviewId(null);
     }
   };
 
@@ -376,9 +381,13 @@ export default function MyApplications() {
                   <Button 
                     className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2"
                     onClick={() => startInterview(app._id)}
+                    disabled={startingInterviewId === app._id}
                   >
-                    <Play className="w-4 h-4" />
-                    Start Interview
+                    {startingInterviewId === app._id ? (
+                      <><Loader className="w-4 h-4 animate-spin" />Starting...</>
+                    ) : (
+                      <><Play className="w-4 h-4" />Start Interview</>
+                    )}
                   </Button>
                 </div>
               )}

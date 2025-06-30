@@ -729,4 +729,49 @@ router.get('/:interviewId', async (req, res) => {
   }
 });
 
+// POST /api/interviews/abandon - Mark interview as abandoned (score 0, completed)
+router.post('/abandon', async (req, res) => {
+  try {
+    const { interviewId } = req.body;
+    if (!interviewId) {
+      return res.status(400).json({ error: 'Interview ID is required' });
+    }
+
+    // Update interview: set all scores to 0, status to Completed
+    const interview = await Interview.findByIdAndUpdate(
+      interviewId,
+      {
+        status: 'Completed',
+        overallRating: 0,
+        contentScore: 0,
+        deliveryScore: 0,
+        weightedScore: 0,
+        feedback: 'Interview was not completed. No answers were submitted.',
+        completedAt: new Date(),
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    // Update the candidate's application: set interviewScore to 0 and status to 'Reviewing'
+    if (interview && interview.application) {
+      await Application.findByIdAndUpdate(
+        interview.application,
+        {
+          status: 'Reviewing',
+          interviewScore: 0
+        }
+      );
+    }
+
+    res.json({
+      message: 'Interview marked as abandoned and completed with score 0.',
+      interview
+    });
+  } catch (error) {
+    console.error('Error abandoning interview:', error);
+    res.status(500).json({ error: 'Failed to abandon interview' });
+  }
+});
+
 export default router; 
