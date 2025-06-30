@@ -171,12 +171,14 @@ export default function ViewApplications() {
           <Button
             variant={activeTab === 'applications' ? 'default' : 'outline'}
             onClick={() => setActiveTab('applications')}
+            className={activeTab === 'applications' ? 'bg-blue-600 hover:bg-blue-700' : ''}
           >
             Applications
           </Button>
           <Button
             variant={activeTab === 'interviews' ? 'default' : 'outline'}
             onClick={() => setActiveTab('interviews')}
+            className={activeTab === 'interviews' ? 'bg-blue-600 hover:bg-blue-700' : ''}
           >
             Interview Results
           </Button>
@@ -184,37 +186,21 @@ export default function ViewApplications() {
         {activeTab === 'applications' && (
           <Card>
             <CardHeader>
-              <CardTitle>Applications for {jobTitle || `Job ID: ${jobId}`}</CardTitle>
-              <div className="flex flex-wrap gap-4 mt-4">
-                <div>
-                  <label className="mr-2 font-medium">Sort by Resume Score:</label>
-                  <select
-                    value={sortOrder}
-                    onChange={e => setSortOrder(e.target.value as 'asc' | 'desc')}
-                    className="border rounded px-2 py-1"
-                  >
-                    <option value="desc">High to Low</option>
-                    <option value="asc">Low to High</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mr-2 font-medium">Top N:</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={applications.length}
-                    value={topN}
-                    onChange={e => setTopN(Number(e.target.value))}
-                    className="border rounded px-2 py-1 w-20"
-                    placeholder="All"
-                  />
-                </div>
-                <Button
-                  variant="default"
-                  disabled={shortlisting}
-                  onClick={openShortlistDialog}
-                >
-                  {shortlisting ? 'Shortlisting...' : 'Shortlist'}
+              <CardTitle>Applications</CardTitle>
+              <div className="mt-6" />
+              <div className="flex items-center gap-4 mt-4">
+                <label className="font-medium">Select Candidates:</label>
+                <label className="font-medium">Top</label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={topN}
+                  onChange={e => setTopN(Number(e.target.value))}
+                  className="w-20"
+                />
+                <Button onClick={openShortlistDialog} className="bg-blue-600 hover:bg-blue-700 flex items-center">
+                  <Star className="w-4 h-4 mr-2" />
+                  Shortlist Top {topN}
                 </Button>
               </div>
             </CardHeader>
@@ -299,8 +285,10 @@ export default function ViewApplications() {
                   variant="default"
                   disabled={selecting}
                   onClick={openSelectDialog}
+                  className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {selecting ? 'Selecting...' : 'Select Candidates'}
+                  <Star className="w-4 h-4 mr-2" />
+                  Select Top {topN}
                 </Button>
               </div>
             </CardHeader>

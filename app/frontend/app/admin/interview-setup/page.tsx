@@ -121,7 +121,6 @@ export default function PostInterview() {
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Post Interviews</h1>
-          <p className="text-gray-600 mt-2">Select a job with status 'Shortlisted, Interview Pending', enter the tech stack, and post the interview. Only shortlisted candidates for that job will see the interview.</p>
         </div>
         <Card className="mb-8">
           <CardContent className="pt-6">

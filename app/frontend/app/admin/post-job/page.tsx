@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, MapPin, DollarSign, Building, FileText, Save, Eye } from 'lucide-react';
+import { Calendar, MapPin, DollarSign, Building, FileText, Save, Eye, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/src/contexts/AuthContext';
 
@@ -102,10 +102,6 @@ export default function PostJob() {
     }));
   };
 
-  const handlePreview = () => {
-    toast.info('Preview functionality will be implemented soon');
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
@@ -113,7 +109,6 @@ export default function PostJob() {
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Post New Job</h1>
-          <p className="text-gray-600 mt-2">Create a new job posting to attract top talent</p>
         </div>
 
         <Card className="shadow-xl">
@@ -176,11 +171,10 @@ export default function PostJob() {
                 <div className="space-y-2">
                   <Label htmlFor="salary">Salary Range *</Label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Wallet className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="salary"
                       name="salary"
-                      placeholder="e.g. $120,000 - $150,000"
                       className="pl-10"
                       value={formData.salary}
                       onChange={handleChange}
@@ -265,10 +259,6 @@ export default function PostJob() {
                 <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
                   <Save className="w-4 h-4 mr-2" />
                   {isLoading ? 'Posting Job...' : 'Post Job'}
-                </Button>
-                <Button type="button" variant="outline" onClick={handlePreview}>
-                  <Eye className="w-4 h-4 mr-2" />
-                  Preview
                 </Button>
               </div>
             </form>
