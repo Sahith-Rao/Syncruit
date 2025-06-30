@@ -238,11 +238,11 @@ export default function ViewApplications() {
                         <TableCell>
                           <div className="flex items-center gap-4">
                             <Avatar>
-                              <AvatarFallback>{app.candidate.name.charAt(0)}</AvatarFallback>
+                              <AvatarFallback>{app.candidate?.name?.charAt(0) || '?'}</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium">{app.candidate.name}</p>
-                              <p className="text-sm text-gray-500">{app.candidate.email}</p>
+                              <p className="font-medium">{app.candidate?.name || 'N/A'}</p>
+                              <p className="text-sm text-gray-500">{app.candidate?.email || 'N/A'}</p>
                             </div>
                           </div>
                         </TableCell>
@@ -318,8 +318,8 @@ export default function ViewApplications() {
                 <TableBody>
                   {displayedInterviewApps.map(app => (
                     <TableRow key={app._id}>
-                      <TableCell>{app.candidate.name}</TableCell>
-                      <TableCell>{app.candidate.email}</TableCell>
+                      <TableCell>{app.candidate?.name || 'N/A'}</TableCell>
+                      <TableCell>{app.candidate?.email || 'N/A'}</TableCell>
                       <TableCell>
                         {typeof app.interviewScore === 'number' ? (
                           <Badge className="bg-blue-100 text-blue-800">{app.interviewScore}</Badge>

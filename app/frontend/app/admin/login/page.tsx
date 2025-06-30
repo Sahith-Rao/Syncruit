@@ -70,7 +70,7 @@ export default function AdminLogin() {
             </div>
             <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
             <CardDescription>
-              Sign in to your employer account to manage jobs and applications
+              Sign in to your account to manage jobs and applications
             </CardDescription>
           </CardHeader>
           <CardContent>

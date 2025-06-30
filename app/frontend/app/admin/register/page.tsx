@@ -42,7 +42,7 @@ export default function AdminRegister() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success("Registration successful! Welcome to TalentHub.");
+        toast.success("Registration successful! Welcome to Syncruit.");
         router.push("/admin/login");
       } else {
         toast.error(data.message || "Registration failed");

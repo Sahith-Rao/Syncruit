@@ -7,7 +7,7 @@ import { AuthProvider } from '@/src/contexts/AuthContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'TalentHub - Connect Talent with Opportunity',
+  title: 'Syncruit - Connect Talent with Opportunity',
   description: 'Leading job portal connecting top talent with leading companies',
 };
 

@@ -40,7 +40,7 @@ export default function CandidateNavbar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/candidate/dashboard" className="flex items-center">
-              <span className="text-2xl font-bold text-purple-600">TalentHub</span>
+              <span className="text-2xl font-bold text-purple-600">Syncruit</span>
               <span className="ml-2 text-sm text-gray-500">Job Seeker</span>
             </Link>
           </div>
