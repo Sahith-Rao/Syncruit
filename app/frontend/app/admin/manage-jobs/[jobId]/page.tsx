@@ -197,179 +197,181 @@ export default function ViewApplications() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <Button variant="outline" onClick={() => router.back()} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Jobs
-        </Button>
-        <div className="mb-6 flex gap-4">
-          <Button
-            variant={activeTab === 'applications' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('applications')}
-            className={activeTab === 'applications' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-          >
-            Applications
+      <div className="pt-16">
+        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          <Button variant="outline" onClick={() => router.back()} className="mb-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Jobs
           </Button>
-          <Button
-            variant={activeTab === 'interviews' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('interviews')}
-            className={activeTab === 'interviews' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-          >
-            Interview Results
-          </Button>
-        </div>
-        {activeTab === 'applications' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Applications</CardTitle>
-              <div className="mt-6" />
-              <div className="flex items-center gap-4 mt-4">
-                <label className="font-medium">Select Candidates:</label>
-                <label className="font-medium">Top</label>
-                <Input
-                    type="number"
-                    min={0}
-                    value={topN}
-                    onChange={e => setTopN(Number(e.target.value))}
-                  className="w-20"
-                  />
-                <Button onClick={openShortlistDialog} className="bg-blue-600 hover:bg-blue-700 flex items-center">
-                  <Star className="w-4 h-4 mr-2" />
-                  Shortlist Top {topN}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <p>Loading applications...</p>
-              ) : displayedApplications.length > 0 ? (
+          <div className="mb-6 flex gap-4">
+            <Button
+              variant={activeTab === 'applications' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('applications')}
+              className={activeTab === 'applications' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+            >
+              Applications
+            </Button>
+            <Button
+              variant={activeTab === 'interviews' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('interviews')}
+              className={activeTab === 'interviews' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+            >
+              Interview Results
+            </Button>
+          </div>
+          {activeTab === 'applications' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Applications</CardTitle>
+                <div className="mt-6" />
+                <div className="flex items-center gap-4 mt-4">
+                  <label className="font-medium">Select Candidates:</label>
+                  <label className="font-medium">Top</label>
+                  <Input
+                      type="number"
+                      min={0}
+                      value={topN}
+                      onChange={e => setTopN(Number(e.target.value))}
+                    className="w-20"
+                    />
+                  <Button onClick={openShortlistDialog} className="bg-blue-600 hover:bg-blue-700 flex items-center">
+                    <Star className="w-4 h-4 mr-2" />
+                    Shortlist Top {topN}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <p>Loading applications...</p>
+                ) : displayedApplications.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Candidate</TableHead>
+                        <TableHead>Resume Score</TableHead>
+                        <TableHead>Applied On</TableHead>
+                        <TableHead>Resume</TableHead>
+                        <TableHead>Shortlisted</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {displayedApplications.map((app) => (
+                        <TableRow key={app._id}>
+                          <TableCell>
+                            <div className="flex items-center gap-4">
+                              <Avatar>
+                                <AvatarFallback>{app.candidate?.name?.charAt(0) || '?'}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">{app.candidate?.name || 'N/A'}</p>
+                                <p className="text-sm text-gray-500">{app.candidate?.email || 'N/A'}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getScoreColor(app.resumeScore)}>
+                              <Star className="w-3 h-3 mr-1" />
+                              {app.resumeScore}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{format(new Date(app.appliedAt), 'MMM d, yyyy')}</TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="sm" asChild>
+                              <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                View Resume
+                              </a>
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            {shortlistedIds.includes(app._id) || app.shortlisted ? (
+                              <Badge className="bg-green-100 text-green-800">Shortlisted</Badge>
+                            ) : (
+                              <Badge className="bg-gray-100 text-gray-800">Not Shortlisted</Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-center text-gray-500 py-8">No applications have been received for this job yet.</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          {activeTab === 'interviews' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Interview Results</CardTitle>
+                <div className="mt-6" />
+                <div className="flex items-center gap-4 mt-4">
+                  <label className="font-medium">Select Candidates:</label>
+                  <label className="font-medium">Top</label>
+                  <Input
+                      type="number"
+                      min={0}
+                      value={topN}
+                      onChange={e => setTopN(Number(e.target.value))}
+                    className="w-20"
+                    />
+                  <Button
+                    variant="default"
+                    disabled={selecting}
+                    onClick={openSelectDialog}
+                    className="bg-blue-600 hover:bg-blue-700 flex items-center"
+                  >
+                    <Star className="w-4 h-4 mr-2" />
+                    Select Top {topN}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Candidate</TableHead>
-                      <TableHead>Resume Score</TableHead>
-                      <TableHead>Applied On</TableHead>
-                      <TableHead>Resume</TableHead>
-                      <TableHead>Shortlisted</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Interview Score</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {displayedApplications.map((app) => (
+                    {displayedInterviewApps.map(app => (
                       <TableRow key={app._id}>
+                        <TableCell>{app.candidate?.name || 'N/A'}</TableCell>
+                        <TableCell>{app.candidate?.email || 'N/A'}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-4">
-                            <Avatar>
-                              <AvatarFallback>{app.candidate?.name?.charAt(0) || '?'}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{app.candidate?.name || 'N/A'}</p>
-                              <p className="text-sm text-gray-500">{app.candidate?.email || 'N/A'}</p>
-                            </div>
-                          </div>
+                          {typeof app.interviewScore === 'number' ? (
+                            <Badge className="bg-blue-100 text-blue-800">{app.interviewScore}</Badge>
+                          ) : (
+                            <Badge className="bg-gray-100 text-gray-800">N/A</Badge>
+                          )}
                         </TableCell>
                         <TableCell>
-                          <Badge className={getScoreColor(app.resumeScore)}>
-                            <Star className="w-3 h-3 mr-1" />
-                            {app.resumeScore}
+                          <Badge className={app.interviewStatus === 'Selected' ? 'bg-green-100 text-green-800' : app.interviewStatus === 'Result Pending' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'}>
+                            {app.interviewStatus || 'N/A'}
                           </Badge>
                         </TableCell>
-                        <TableCell>{format(new Date(app.appliedAt), 'MMM d, yyyy')}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" asChild>
-                            <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              View Resume
-                            </a>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewProfile(app.candidate._id)}
+                            disabled={!app.interviewScore}
+                          >
+                            View Details
                           </Button>
-                        </TableCell>
-                        <TableCell>
-                          {shortlistedIds.includes(app._id) || app.shortlisted ? (
-                            <Badge className="bg-green-100 text-green-800">Shortlisted</Badge>
-                          ) : (
-                            <Badge className="bg-gray-100 text-gray-800">Not Shortlisted</Badge>
-                          )}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              ) : (
-                <p className="text-center text-gray-500 py-8">No applications have been received for this job yet.</p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-        {activeTab === 'interviews' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Interview Results</CardTitle>
-              <div className="mt-6" />
-              <div className="flex items-center gap-4 mt-4">
-                <label className="font-medium">Select Candidates:</label>
-                <label className="font-medium">Top</label>
-                <Input
-                    type="number"
-                    min={0}
-                    value={topN}
-                    onChange={e => setTopN(Number(e.target.value))}
-                  className="w-20"
-                  />
-                <Button
-                  variant="default"
-                  disabled={selecting}
-                  onClick={openSelectDialog}
-                  className="bg-blue-600 hover:bg-blue-700 flex items-center"
-                >
-                  <Star className="w-4 h-4 mr-2" />
-                  Select Top {topN}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Candidate</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Interview Score</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {displayedInterviewApps.map(app => (
-                    <TableRow key={app._id}>
-                      <TableCell>{app.candidate?.name || 'N/A'}</TableCell>
-                      <TableCell>{app.candidate?.email || 'N/A'}</TableCell>
-                      <TableCell>
-                        {typeof app.interviewScore === 'number' ? (
-                          <Badge className="bg-blue-100 text-blue-800">{app.interviewScore}</Badge>
-                        ) : (
-                          <Badge className="bg-gray-100 text-gray-800">N/A</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={app.interviewStatus === 'Selected' ? 'bg-green-100 text-green-800' : app.interviewStatus === 'Result Pending' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'}>
-                          {app.interviewStatus || 'N/A'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewProfile(app.candidate._id)}
-                          disabled={!app.interviewScore}
-                        >
-                          View Details
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
       {/* Email Dialog for Shortlist/Select */}
       <Dialog open={!!emailDialogOpen} onOpenChange={open => !open && setEmailDialogOpen(null)}>

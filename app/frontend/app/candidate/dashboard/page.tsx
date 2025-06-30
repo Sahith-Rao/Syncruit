@@ -203,162 +203,164 @@ export default function CandidateDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <CandidateNavbar />
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {candidateData.firstName}!
-          </h1>
-          <p className="text-gray-600 mt-2">Find and apply for jobs that match your skills</p>
-        </div>
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">Total Applications</CardTitle>
-              <FileText className="h-4 w-4 opacity-90" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs opacity-90">Jobs applied to</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">Pending Review</CardTitle>
-              <Clock className="h-4 w-4 opacity-90" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs opacity-90">Awaiting response</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">Interviews</CardTitle>
-              <Calendar className="h-4 w-4 opacity-90" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.interviews}</div>
-              <p className="text-xs opacity-90">Scheduled</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium opacity-90">Accepted</CardTitle>
-              <CheckCircle className="h-4 w-4 opacity-90" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.accepted}</div>
-              <p className="text-xs opacity-90">Job offers</p>
-            </CardContent>
-          </Card>
-        </div>
-        {/* Search and Filters */}
-        <Card className="mb-8">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4 items-center">
-              <div className="relative flex-grow w-full">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by title, company, or location"
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-full">
-                {(['all', 'title', 'company', 'location'] as const).map(field => (
-                  <Button
-                    key={field}
-                    variant="ghost"
-                    size="sm"
-                    className={`rounded-full capitalize px-4 py-1 h-auto text-sm ${
-                      searchField === field
-                        ? 'bg-purple-600 text-white hover:bg-purple-700'
-                        : 'text-gray-600 hover:bg-gray-200'
-                    }`}
-                    onClick={() => setSearchField(field)}
-                  >
-                    {field}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Job Listings */}
-        <div className="space-y-6">
-          {filteredJobs.map((job) => (
-            <Card key={job._id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between">
-                  <div className="flex-1 mb-4 md:mb-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-1">{job.title}</h3>
-                        <p className="text-lg text-gray-700 font-medium">{job.company}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      <Badge variant="secondary">
-                        <MapPin className="w-4 h-4 mr-1 inline" /> {job.location}
-                      </Badge>
-                      <Badge variant="secondary">
-                        <span className="flex items-center gap-1"><Wallet className="w-4 h-4 mr-1 inline" /> {job.salary}</span>
-                      </Badge>
-                      {job.jobType && (
-                        <Badge variant="secondary">
-                          <Briefcase className="w-4 h-4 mr-1 inline" /> {job.jobType}
-                        </Badge>
-                      )}
-                      {job.experience && (
-                        <Badge variant="secondary">
-                          <Calendar className="w-4 h-4 mr-1 inline" /> {job.experience}
-                        </Badge>
-                      )}
-                    </div>
-                    {job.skillsRequired && job.skillsRequired.length > 0 && (
-                      <div className="mb-2">
-                        <span className="font-medium text-gray-700">Skills Required: </span>
-                        {job.skillsRequired.map((skill, idx) => (
-                          <Badge key={idx} variant="outline" className="ml-1">
-                            {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    <p className="text-gray-700 mb-2">{job.description}</p>
-                    {job.requirements && (
-                      <div className="mb-2">
-                        <span className="font-medium text-gray-700">Requirements: </span>
-                        {job.requirements}
-                      </div>
-                    )}
-                    {job.benefits && (
-                      <div className="mb-2">
-                        <span className="font-medium text-gray-700">Benefits: </span>
-                        {job.benefits}
-                      </div>
-                    )}
-                    {job.lastDate && (
-                      <div className="mb-2">
-                        <span className="font-medium text-gray-700">Apply By: </span>
-                        {job.lastDate}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-4">
-                    <Button
-                      variant="default"
-                      onClick={() => handleApplyClick(job)}
-                    >
-                      Apply
-                    </Button>
-                  </div>
-                </div>
+      <div className="pt-16">
+        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Welcome back, {candidateData.firstName}!
+            </h1>
+            <p className="text-gray-600 mt-2">Find and apply for jobs that match your skills</p>
+          </div>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium opacity-90">Total Applications</CardTitle>
+                <FileText className="h-4 w-4 opacity-90" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.total}</div>
+                <p className="text-xs opacity-90">Jobs applied to</p>
               </CardContent>
             </Card>
-          ))}
+            <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium opacity-90">Pending Review</CardTitle>
+                <Clock className="h-4 w-4 opacity-90" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.pending}</div>
+                <p className="text-xs opacity-90">Awaiting response</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium opacity-90">Interviews</CardTitle>
+                <Calendar className="h-4 w-4 opacity-90" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.interviews}</div>
+                <p className="text-xs opacity-90">Scheduled</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium opacity-90">Accepted</CardTitle>
+                <CheckCircle className="h-4 w-4 opacity-90" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.accepted}</div>
+                <p className="text-xs opacity-90">Job offers</p>
+              </CardContent>
+            </Card>
+          </div>
+          {/* Search and Filters */}
+          <Card className="mb-8">
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                <div className="relative flex-grow w-full">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search by title, company, or location"
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-full">
+                  {(['all', 'title', 'company', 'location'] as const).map(field => (
+                    <Button
+                      key={field}
+                      variant="ghost"
+                      size="sm"
+                      className={`rounded-full capitalize px-4 py-1 h-auto text-sm ${
+                        searchField === field
+                          ? 'bg-purple-600 text-white hover:bg-purple-700'
+                          : 'text-gray-600 hover:bg-gray-200'
+                      }`}
+                      onClick={() => setSearchField(field)}
+                    >
+                      {field}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Job Listings */}
+          <div className="space-y-6">
+            {filteredJobs.map((job) => (
+              <Card key={job._id} className="hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between">
+                    <div className="flex-1 mb-4 md:mb-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900 mb-1">{job.title}</h3>
+                          <p className="text-lg text-gray-700 font-medium">{job.company}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <Badge variant="secondary">
+                          <MapPin className="w-4 h-4 mr-1 inline" /> {job.location}
+                        </Badge>
+                        <Badge variant="secondary">
+                          <span className="flex items-center gap-1"><Wallet className="w-4 h-4 mr-1 inline" /> {job.salary}</span>
+                        </Badge>
+                        {job.jobType && (
+                          <Badge variant="secondary">
+                            <Briefcase className="w-4 h-4 mr-1 inline" /> {job.jobType}
+                          </Badge>
+                        )}
+                        {job.experience && (
+                          <Badge variant="secondary">
+                            <Calendar className="w-4 h-4 mr-1 inline" /> {job.experience}
+                          </Badge>
+                        )}
+                      </div>
+                      {job.skillsRequired && job.skillsRequired.length > 0 && (
+                        <div className="mb-2">
+                          <span className="font-medium text-gray-700">Skills Required: </span>
+                          {job.skillsRequired.map((skill, idx) => (
+                            <Badge key={idx} variant="outline" className="ml-1">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-gray-700 mb-2">{job.description}</p>
+                      {job.requirements && (
+                        <div className="mb-2">
+                          <span className="font-medium text-gray-700">Requirements: </span>
+                          {job.requirements}
+                        </div>
+                      )}
+                      {job.benefits && (
+                        <div className="mb-2">
+                          <span className="font-medium text-gray-700">Benefits: </span>
+                          {job.benefits}
+                        </div>
+                      )}
+                      {job.lastDate && (
+                        <div className="mb-2">
+                          <span className="font-medium text-gray-700">Apply By: </span>
+                          {job.lastDate}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-4">
+                      <Button
+                        variant="default"
+                        onClick={() => handleApplyClick(job)}
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
       <Dialog open={isApplying} onOpenChange={setIsApplying}>

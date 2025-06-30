@@ -105,165 +105,166 @@ export default function PostJob() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
-      
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Post New Job</h1>
-        </div>
+      <div className="pt-16">
+        <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Post New Job</h1>
+          </div>
 
-        <Card className="shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-blue-600" />
-              Job Details
-            </CardTitle>
-            <CardDescription>
-              Fill in the details below to create your job posting
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="shadow-xl">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                Job Details
+              </CardTitle>
+              <CardDescription>
+                Fill in the details below to create your job posting
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Job Title *</Label>
+                    <Input
+                      id="title"
+                      name="title"
+                      placeholder="e.g. Senior Frontend Developer"
+                      value={formData.title}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Company Name *</Label>
+                    <div className="relative">
+                      <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="company"
+                        name="company"
+                        placeholder="e.g. TechCorp Inc."
+                        className="pl-10"
+                        value={formData.company}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location *</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="location"
+                        name="location"
+                        placeholder="e.g. San Francisco, CA"
+                        className="pl-10"
+                        value={formData.location}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="salary">Salary Range *</Label>
+                    <div className="relative">
+                      <Wallet className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="salary"
+                        name="salary"
+                        className="pl-10"
+                        value={formData.salary}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="jobType">Job Type</Label>
+                    <Select onValueChange={(value) => handleSelectChange('jobType', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select job type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full-time">Full-time</SelectItem>
+                        <SelectItem value="part-time">Part-time</SelectItem>
+                        <SelectItem value="contract">Contract</SelectItem>
+                        <SelectItem value="internship">Internship</SelectItem>
+                        <SelectItem value="remote">Remote</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="experience">Experience Level</Label>
+                    <Select onValueChange={(value) => handleSelectChange('experience', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select experience level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="entry">Entry Level (0-2 years)</SelectItem>
+                        <SelectItem value="mid">Mid Level (2-5 years)</SelectItem>
+                        <SelectItem value="senior">Senior Level (5+ years)</SelectItem>
+                        <SelectItem value="lead">Lead/Manager (8+ years)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="title">Job Title *</Label>
-                  <Input
-                    id="title"
-                    name="title"
-                    placeholder="e.g. Senior Frontend Developer"
-                    value={formData.title}
+                  <Label htmlFor="deadline">Application Deadline</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="deadline"
+                      name="deadline"
+                      type="datetime-local"
+                      className="pl-10"
+                      value={formData.deadline}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Job Description *</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    placeholder="Describe the role, responsibilities, and what you're looking for in a candidate..."
+                    rows={6}
+                    value={formData.description}
                     onChange={handleChange}
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company Name *</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="company"
-                      name="company"
-                      placeholder="e.g. TechCorp Inc."
-                      className="pl-10"
-                      value={formData.company}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location *</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="location"
-                      name="location"
-                      placeholder="e.g. San Francisco, CA"
-                      className="pl-10"
-                      value={formData.location}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salary">Salary Range *</Label>
-                  <div className="relative">
-                    <Wallet className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="salary"
-                      name="salary"
-                      className="pl-10"
-                      value={formData.salary}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="jobType">Job Type</Label>
-                  <Select onValueChange={(value) => handleSelectChange('jobType', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select job type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="full-time">Full-time</SelectItem>
-                      <SelectItem value="part-time">Part-time</SelectItem>
-                      <SelectItem value="contract">Contract</SelectItem>
-                      <SelectItem value="internship">Internship</SelectItem>
-                      <SelectItem value="remote">Remote</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="experience">Experience Level</Label>
-                  <Select onValueChange={(value) => handleSelectChange('experience', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select experience level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="entry">Entry Level (0-2 years)</SelectItem>
-                      <SelectItem value="mid">Mid Level (2-5 years)</SelectItem>
-                      <SelectItem value="senior">Senior Level (5+ years)</SelectItem>
-                      <SelectItem value="lead">Lead/Manager (8+ years)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="deadline">Application Deadline</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Label htmlFor="skillsRequired">Skills Required (comma-separated)</Label>
                   <Input
-                    id="deadline"
-                    name="deadline"
-                    type="datetime-local"
-                    className="pl-10"
-                    value={formData.deadline}
+                    id="skillsRequired"
+                    name="skillsRequired"
+                    placeholder="e.g. React, Node.js, MongoDB"
+                    value={formData.skillsRequired}
                     onChange={handleChange}
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Job Description *</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  placeholder="Describe the role, responsibilities, and what you're looking for in a candidate..."
-                  rows={6}
-                  value={formData.description}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="skillsRequired">Skills Required (comma-separated)</Label>
-                <Input
-                  id="skillsRequired"
-                  name="skillsRequired"
-                  placeholder="e.g. React, Node.js, MongoDB"
-                  value={formData.skillsRequired}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-                  <Save className="w-4 h-4 mr-2" />
-                  {isLoading ? 'Posting Job...' : 'Post Job'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                  <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+                    <Save className="w-4 h-4 mr-2" />
+                    {isLoading ? 'Posting Job...' : 'Post Job'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
