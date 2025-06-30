@@ -18,7 +18,7 @@ export default function LandingPage() {
             Welcome to <span className="text-blue-600">Syncruit</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Connect top talent with leading companies. Whether you're looking to hire the best or find your dream job, we've got you covered.
+            Where Talent and Hiring Sync Perfectly.
           </p>
         </div>
 
@@ -47,11 +47,11 @@ export default function LandingPage() {
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center text-gray-700">
                     <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    Post unlimited job openings
+                    Seamlessly create and manage job listings
                   </li>
                   <li className="flex items-center text-gray-700">
                     <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    Access candidate profiles and resumes
+                    Analytics and reporting dashboard
                   </li>
                   <li className="flex items-center text-gray-700">
                     <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
@@ -59,7 +59,7 @@ export default function LandingPage() {
                   </li>
                   <li className="flex items-center text-gray-700">
                     <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    Analytics and reporting dashboard
+                    Instant emails to shortlisted candidates
                   </li>
                 </ul>
                 {selectedRole === 'admin' && (
@@ -100,7 +100,7 @@ export default function LandingPage() {
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center text-gray-700">
                     <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    Browse thousands of job opportunities
+                    Browse job opportunities
                   </li>
                   <li className="flex items-center text-gray-700">
                     <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
@@ -112,7 +112,7 @@ export default function LandingPage() {
                   </li>
                   <li className="flex items-center text-gray-700">
                     <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                    Practice with mock interviews
+                    Practice interviews to boost your confidence
                   </li>
                 </ul>
                 {selectedRole === 'candidate' && (
@@ -157,8 +157,8 @@ export default function LandingPage() {
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-6 h-6 text-purple-600" />
               </div>
-              <h4 className="text-xl font-semibold mb-2">Trusted Platform</h4>
-              <p className="text-gray-600">Join thousands of satisfied users who found success through our platform.</p>
+              <h4 className="text-xl font-semibold mb-2">Unified Experience</h4>
+              <p className="text-gray-600">Discovering talent and finding jobs feels seamless and connected.</p>
             </div>
           </div>
         </div>

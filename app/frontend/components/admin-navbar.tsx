@@ -11,7 +11,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  Settings
+  Settings,
+  User
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,7 +32,7 @@ export default function AdminNavbar() {
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Manage Jobs', href: '/admin/manage-jobs', icon: Briefcase },
     { name: 'Post Job', href: '/admin/post-job', icon: PlusCircle },
-    { name: 'Post Interviews', href: '/admin/interview-setup', icon: Settings },
+    { name: 'Post Interviews', href: '/admin/interview-setup', icon: User },
   ];
 
   return (
@@ -39,9 +40,9 @@ export default function AdminNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link href="/admin/dashboard" className="flex items-center">
-              <span className="text-2xl font-bold text-blue-600">Syncruit</span>
-              <span className="ml-2 text-sm text-gray-500">Admin</span>
+            <Link href="/admin/dashboard" className="flex items-end">
+              <span className="text-2xl font-bold text-blue-600 leading-none">Syncruit</span>
+              <span className="ml-3 text-base text-gray-500 leading-none pb-px">Admin</span>
             </Link>
           </div>
 
