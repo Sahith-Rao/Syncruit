@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ExternalLink, Mail, User, Star } from 'lucide-react';
 import { format } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -27,6 +27,21 @@ interface Applicant {
   shortlisted: boolean;
   interviewStatus?: string;
   interviewScore?: number;
+}
+
+interface CandidateProfile {
+  _id: string;
+  name: string;
+  email: string;
+  mobile?: string;
+  location?: string;
+  currentPosition?: string;
+  experience?: string;
+  skills?: string;
+  summary?: string;
+  education?: string;
+  certifications?: string;
+  resumeUrl?: string;
 }
 
 export default function ViewApplications() {
@@ -49,6 +64,8 @@ export default function ViewApplications() {
   const [emailBody, setEmailBody] = useState('');
   const [pendingShortlist, setPendingShortlist] = useState<string[]>([]);
   const [pendingSelect, setPendingSelect] = useState<string[]>([]);
+  const [selectedCandidateProfile, setSelectedCandidateProfile] = useState<CandidateProfile | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -156,6 +173,24 @@ export default function ViewApplications() {
     } finally {
       setSelecting(false);
       setEmailDialogOpen(null);
+    }
+  };
+
+  const handleViewProfile = async (candidateId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/candidates/${candidateId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch candidate profile');
+      const profileData: CandidateProfile = await res.json();
+      setSelectedCandidateProfile(profileData);
+      setIsProfileModalOpen(true);
+    } catch (error) {
+      console.error(error);
+      // You can add a toast notification here to inform the user
     }
   };
 
@@ -268,24 +303,22 @@ export default function ViewApplications() {
           <Card>
             <CardHeader>
               <CardTitle>Interview Results</CardTitle>
-              <div className="flex flex-wrap gap-4 mt-4">
-                <div>
-                  <label className="mr-2 font-medium">Top N:</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={sortedInterviewApps.length}
-                    value={topN}
-                    onChange={e => setTopN(Number(e.target.value))}
-                    className="border rounded px-2 py-1 w-20"
-                    placeholder="All"
-                  />
-                </div>
+              <div className="mt-6" />
+              <div className="flex items-center gap-4 mt-4">
+                <label className="font-medium">Select Candidates:</label>
+                <label className="font-medium">Top</label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={topN}
+                  onChange={e => setTopN(Number(e.target.value))}
+                  className="w-20"
+                />
                 <Button
                   variant="default"
                   disabled={selecting}
                   onClick={openSelectDialog}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 flex items-center"
                 >
                   <Star className="w-4 h-4 mr-2" />
                   Select Top {topN}
@@ -324,7 +357,7 @@ export default function ViewApplications() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => router.push(`/admin/interview-result/${app._id}`)}
+                          onClick={() => handleViewProfile(app.candidate._id)}
                           disabled={!app.interviewScore}
                         >
                           View Details
@@ -377,6 +410,47 @@ export default function ViewApplications() {
             <Button variant="outline" onClick={() => setEmailDialogOpen(null)} disabled={shortlisting || selecting}>
               Cancel
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Candidate Profile Modal */}
+      <Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Candidate Profile</DialogTitle>
+            <DialogDescription>
+              Details for {selectedCandidateProfile?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedCandidateProfile ? (
+            <div className="py-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div><p className="font-semibold">Email</p><p>{selectedCandidateProfile.email}</p></div>
+                <div><p className="font-semibold">Mobile</p><p>{selectedCandidateProfile.mobile || 'N/A'}</p></div>
+                <div><p className="font-semibold">Location</p><p>{selectedCandidateProfile.location || 'N/A'}</p></div>
+                <div><p className="font-semibold">Current Position</p><p>{selectedCandidateProfile.currentPosition || 'N/A'}</p></div>
+                <div><p className="font-semibold">Experience</p><p>{selectedCandidateProfile.experience || 'N/A'}</p></div>
+              </div>
+              <div>
+                <p className="font-semibold">Skills</p>
+                <p>{selectedCandidateProfile.skills || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="font-semibold">Summary</p>
+                <p className="text-sm text-gray-600">{selectedCandidateProfile.summary || 'N/A'}</p>
+              </div>
+              <Button asChild>
+                <a href={selectedCandidateProfile.resumeUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-4 h-4 mr-2" /> View Resume
+                </a>
+              </Button>
+            </div>
+          ) : (
+            <p>Loading profile...</p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsProfileModalOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
