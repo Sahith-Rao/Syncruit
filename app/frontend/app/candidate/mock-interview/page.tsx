@@ -40,6 +40,8 @@ interface InterviewSession {
   feedback: string;
   question?: string; // Add question property
   deliveryFeedback?: string[]; // Add deliveryFeedback property
+  contentScore?: number; // Add contentScore property
+  deliveryScore?: number; // Add deliveryScore property
   status: 'Completed' | 'In Progress' | 'Not Started';
 }
 
@@ -102,6 +104,8 @@ export default function MockInterview() {
           feedback: result.feedback || 'No feedback available',
           question: result.question || 'No question available',
           deliveryFeedback: result.deliveryFeedback || [],
+          contentScore: result.contentScore || 0,
+          deliveryScore: result.deliveryScore || 0,
           status: 'Completed' as const
         }));
         
@@ -511,7 +515,7 @@ export default function MockInterview() {
     <div className="min-h-screen bg-gray-50">
       <CandidateNavbar />
       
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto pt-6 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Practice Interview</h1>
         </div>
@@ -731,6 +735,15 @@ export default function MockInterview() {
                     
                     <TabsContent value="delivery">
                       <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center justify-between p-4 bg-white border border-green-200 rounded-lg shadow-sm mb-6">
+                          <div>
+                            <h4 className="font-semibold text-gray-700">Delivery Score</h4>
+                            <p className="text-xs text-gray-500">Based on confidence and presentation</p>
+                          </div>
+                          <div className="text-3xl font-bold text-green-700">
+                            {((analysisResult.hrAnalysis.overall_score || 0) / 10).toFixed(2)}<span className="text-lg font-normal text-green-500">/10</span>
+                          </div>
+                        </div>
                         <ul className="ml-4 list-disc">
                           {analysisResult.hrAnalysis.feedback_comments &&
                             analysisResult.hrAnalysis.feedback_comments
@@ -820,8 +833,7 @@ export default function MockInterview() {
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <h4 className="font-medium text-gray-900">{session.type}</h4>
-                            <p className="text-sm text-gray-600">{session.duration}</p>
+                            <h4 className="font-medium text-gray-900">{session.type.split(' - ')[0]}</h4>
                           </div>
                           <Badge className={getScoreBadgeColor(session.score)}>
                             {session.score}%
@@ -864,21 +876,26 @@ export default function MockInterview() {
                         {sessions.find(s => s.id === modalSessionId) && (
                           <>
                             <div className="mb-6">
-                              <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-2xl font-bold text-gray-900">
+                              <div className="mb-4">
+                                <h2 className="text-2xl font-bold text-gray-900 mb-4">
                                   {sessions.find(s => s.id === modalSessionId)?.type}
                                 </h2>
-                                <Badge className={getScoreBadgeColor(sessions.find(s => s.id === modalSessionId)?.score || 0)}>
-                                  {sessions.find(s => s.id === modalSessionId)?.score}%
-                                </Badge>
-                              </div>
-                              
-                              <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                                <div className="flex items-center">
-                                  <Clock className="w-4 h-4 mr-1" />
-                                  <span>{sessions.find(s => s.id === modalSessionId)?.duration}</span>
+                                
+                                <div className="p-4 bg-white border border-gray-200 rounded-lg mb-4 shadow-sm">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-semibold text-gray-700">Overall Score</h4>
+                                      <p className="text-xs text-gray-500">Final evaluation result</p>
+                                    </div>
+                                    <div className="text-3xl font-bold text-purple-800">
+                                      <span className="font-extrabold">{sessions.find(s => s.id === modalSessionId)?.score}%</span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div>
+                                
+                                {/* Grid layout for scores removed as per feedback */}
+                                
+                                <div className="text-sm text-gray-600">
                                   <span>Completed {sessions.find(s => s.id === modalSessionId)?.completedDate}</span>
                                 </div>
                               </div>
@@ -889,22 +906,40 @@ export default function MockInterview() {
                               </div>
                             </div>
                             
-                            <Tabs defaultValue="content">
-                              <TabsList className="w-full mb-4">
-                                <TabsTrigger value="content">Content Analysis</TabsTrigger>
-                                <TabsTrigger value="delivery">Delivery Analysis</TabsTrigger>
+                            <Tabs defaultValue="content" className="w-full">
+                              <TabsList className="w-full mb-4 grid grid-cols-2 border border-gray-200 rounded-md overflow-hidden h-14 flex items-center">
+                                <TabsTrigger value="content" className="text-base h-full flex items-center justify-center data-[state=active]:bg-white data-[state=active]:shadow-none">Content Analysis</TabsTrigger>
+                                <TabsTrigger value="delivery" className="text-base h-full flex items-center justify-center data-[state=active]:bg-white data-[state=active]:shadow-none">Delivery Analysis</TabsTrigger>
                               </TabsList>
                               
-                              <TabsContent value="content">
+                              <TabsContent value="content" className="w-full">
                                 <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
+                                  <div className="flex items-center justify-between p-4 bg-white border border-blue-200 rounded-lg shadow-sm mb-6">
+                                    <div>
+                                      <h4 className="font-semibold text-gray-700">Content Score</h4>
+                                      <p className="text-xs text-gray-500">Based on answer quality and completeness</p>
+                                    </div>
+                                    <div className="text-3xl font-bold text-blue-700">
+                                      {(sessions.find(s => s.id === modalSessionId)?.contentScore || 0).toFixed(2)}<span className="text-lg font-normal text-blue-500">/10</span>
+                                    </div>
+                                  </div>
                                   <div className="text-gray-600">
                                     {renderMarkdownFeedback(sessions.find(s => s.id === modalSessionId)?.feedback || '')}
                                   </div>
                                 </div>
                               </TabsContent>
                               
-                              <TabsContent value="delivery">
+                              <TabsContent value="delivery" className="w-full">
                                 <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+                                  <div className="flex items-center justify-between p-4 bg-white border border-green-200 rounded-lg shadow-sm mb-6">
+                                    <div>
+                                      <h4 className="font-semibold text-gray-700">Delivery Score</h4>
+                                      <p className="text-xs text-gray-500">Based on confidence and presentation</p>
+                                    </div>
+                                    <div className="text-3xl font-bold text-green-700">
+                                      {((sessions.find(s => s.id === modalSessionId)?.deliveryScore || 0) / 10).toFixed(2)}<span className="text-lg font-normal text-green-500">/10</span>
+                                    </div>
+                                  </div>
                                   <ul className="ml-4 list-disc">
                                     {sessions.find(s => s.id === modalSessionId)?.deliveryFeedback?.map((comment: string, idx: number) => (
                                       <li key={idx} className="mb-2 text-gray-700">{comment}</li>

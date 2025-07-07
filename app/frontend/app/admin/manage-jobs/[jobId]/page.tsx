@@ -225,15 +225,19 @@ export default function ViewApplications() {
                 <CardTitle>Applications</CardTitle>
                 <div className="mt-6" />
                 <div className="flex items-center gap-4 mt-4">
-                  <label className="font-medium">Select Candidates:</label>
-                  <label className="font-medium">Top</label>
-                  <Input
+                  <div className="flex items-center">
+                    <label className="font-medium whitespace-nowrap flex items-center">
+                      <span>Select Candidates:</span>
+                      <span className="ml-2">Top</span>
+                    </label>
+                    <Input
                       type="number"
                       min={0}
                       value={topN}
                       onChange={e => setTopN(Number(e.target.value))}
-                    className="w-20"
+                      className="w-10 ml-2"
                     />
+                  </div>
                   <Button onClick={openShortlistDialog} className="bg-blue-600 hover:bg-blue-700 flex items-center">
                     <Star className="w-4 h-4 mr-2" />
                     Shortlist Top {topN}
@@ -306,15 +310,19 @@ export default function ViewApplications() {
                 <CardTitle>Interview Results</CardTitle>
                 <div className="mt-6" />
                 <div className="flex items-center gap-4 mt-4">
-                  <label className="font-medium">Select Candidates:</label>
-                  <label className="font-medium">Top</label>
-                  <Input
+                  <div className="flex items-center">
+                    <label className="font-medium whitespace-nowrap flex items-center">
+                      <span>Select Candidates:</span>
+                      <span className="ml-2">Top</span>
+                    </label>
+                    <Input
                       type="number"
                       min={0}
                       value={topN}
                       onChange={e => setTopN(Number(e.target.value))}
-                    className="w-20"
+                      className="w-10 ml-2"
                     />
+                  </div>
                   <Button
                     variant="default"
                     disabled={selecting}

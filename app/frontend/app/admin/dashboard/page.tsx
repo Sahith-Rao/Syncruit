@@ -78,8 +78,8 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium opacity-90">Total Jobs Posted</CardTitle>
-                <Briefcase className="h-4 w-4 opacity-90" />
+                <CardTitle className="text-sm font-medium opacity-90 text-left">Total Jobs Posted</CardTitle>
+                <Briefcase className="h-4 w-4 opacity-90 ml-2" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{jobs.length}</div>
@@ -89,8 +89,8 @@ export default function AdminDashboard() {
 
             <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium opacity-90">Active Jobs</CardTitle>
-                <Users className="h-4 w-4 opacity-90" />
+                <CardTitle className="text-sm font-medium opacity-90 text-left">Active Jobs</CardTitle>
+                <Users className="h-4 w-4 opacity-90 ml-2" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{activeJobs}</div>
@@ -100,8 +100,8 @@ export default function AdminDashboard() {
 
             <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium opacity-90">Total Applications Received</CardTitle>
-                <FileText className="h-4 w-4 opacity-90" />
+                <CardTitle className="text-sm font-medium opacity-90 text-left">Total Applications Received</CardTitle>
+                <FileText className="h-4 w-4 opacity-90 ml-2" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalApplications}</div>
@@ -111,8 +111,8 @@ export default function AdminDashboard() {
 
             <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium opacity-90">Pending Applications</CardTitle>
-                <Clock className="h-4 w-4 opacity-90" />
+                <CardTitle className="text-sm font-medium opacity-90 text-left">Pending Applications</CardTitle>
+                <Clock className="h-4 w-4 opacity-90 ml-2" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{pendingApplications}</div>
@@ -134,11 +134,16 @@ export default function AdminDashboard() {
               <CardContent>
                 <div className="space-y-3">
                   {(() => {
-                    // Find jobs with pending applications, no applications, or interviews to review
+                    // Find jobs with pending applications, interviews pending, or interviews to review
                     const jobsWithPending = jobs.filter((job: any) =>
                       Array.isArray(job.applications) && job.applications.some((app: any) => app.status === 'Applied' || app.status === 'Reviewing')
                     );
-                    const jobsWithNoApps = jobs.filter((job: any) => (job.applicationCount || 0) === 0);
+                    const jobsWithInterviewsPending = jobs.filter((job: any) =>
+                      job.status === 'Shortlisted, Interview Pending' || job.status === 'Interviews Open' ||
+                      (Array.isArray(job.applications) && job.applications.some((app: any) => 
+                        app.status === 'Shortlisted' && typeof app.interviewScore !== 'number'
+                      ))
+                    );
                     const jobsWithInterviewsToReview = jobs.filter((job: any) =>
                       Array.isArray(job.applications) && job.applications.some((app: any) =>
                         typeof app.interviewScore === 'number' && (app.status !== 'Selected' && app.status !== 'Not Selected')
@@ -147,7 +152,7 @@ export default function AdminDashboard() {
                     // Merge and deduplicate jobs
                     const jobsNeedingAttention = [
                       ...jobsWithPending.map((job: any) => ({ ...job, attention: 'Pending Applications' as const })),
-                      ...jobsWithNoApps.map((job: any) => ({ ...job, attention: 'No Applications' as const })),
+                      ...jobsWithInterviewsPending.map((job: any) => ({ ...job, attention: 'Interviews Pending' as const })),
                       ...jobsWithInterviewsToReview.map((job: any) => ({ ...job, attention: 'Interviews to Review' as const })),
                     ];
                     // Deduplicate by job._id, but keep the highest priority attention
@@ -156,11 +161,11 @@ export default function AdminDashboard() {
                       if (!uniqueJobs[job._id]) {
                         uniqueJobs[job._id] = job;
                       } else {
-                        // Priority: Pending Applications > Interviews to Review > No Applications
+                        // Priority: Pending Applications > Interviews to Review > Interviews Pending
                         const priority = {
                           'Pending Applications': 3,
                           'Interviews to Review': 2,
-                          'No Applications': 1,
+                          'Interviews Pending': 1,
                         } as const;
                         if (
                           priority[job.attention as keyof typeof priority] >
@@ -175,7 +180,7 @@ export default function AdminDashboard() {
                       return <div className="text-gray-500 text-sm">No jobs need your attention right now.</div>;
                     }
                     return jobsList.map((job: any) => {
-                      const attention: 'Pending Applications' | 'No Applications' | 'Interviews to Review' = job.attention;
+                      const attention: 'Pending Applications' | 'Interviews Pending' | 'Interviews to Review' = job.attention;
                       return (
                         <div key={job._id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 mb-4 bg-gray-50 rounded-xl border border-gray-200">
                           <div className="flex-1 min-w-0">
@@ -196,8 +201,8 @@ export default function AdminDashboard() {
                             {attention === 'Pending Applications' && (
                               <span className="inline-block px-3 py-1 text-xs font-semibold bg-orange-100 text-orange-800 rounded-full">Pending Applications</span>
                             )}
-                            {attention === 'No Applications' && (
-                              <span className="inline-block px-3 py-1 text-xs font-semibold bg-gray-200 text-gray-700 rounded-full">No Applications</span>
+                            {attention === 'Interviews Pending' && (
+                              <span className="inline-block px-3 py-1 text-xs font-semibold bg-orange-100 text-orange-800 rounded-full">Interviews Pending</span>
                             )}
                             {attention === 'Interviews to Review' && (
                               <span className="inline-block px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">Interviews to Review</span>
@@ -242,7 +247,7 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div className="mt-3 md:mt-0 md:ml-4 flex-shrink-0">
-                          <span className="inline-block px-3 py-1 text-sm font-semibold bg-blue-100 text-blue-800 rounded-full">
+                          <span className="inline-block px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">
                             {job.applicationCount} applications
                           </span>
                         </div>
