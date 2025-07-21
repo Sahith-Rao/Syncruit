@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const CandidateSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
-  name: { type: String, required: true }, // full name for backward compatibility
+  name: { type: String, required: true }, 
   email: { type: String, required: true, unique: true },
   mobile: { type: String, required: true },
   location: { type: String, required: true },

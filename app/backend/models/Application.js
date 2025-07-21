@@ -12,8 +12,8 @@ const applicationSchema = new mongoose.Schema({
     enum: ['Applied', 'Shortlisted', 'Not Qualified', 'Reviewing', 'Interview Expired', 'Selected', 'Not Selected']
   },
   shortlisted: { type: Boolean, default: false },
-  interviewStatus: { type: String, default: 'Not Started' }, // 'Not Started', 'Result Pending', 'Selected'
-  interviewScore: { type: Number }, // Store interview score for admin selection
+  interviewStatus: { type: String, default: 'Not Started' },
+  interviewScore: { type: Number }, 
 }, { collection: 'applications' });
 
 export default mongoose.model('Application', applicationSchema); 

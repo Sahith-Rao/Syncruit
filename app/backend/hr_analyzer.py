@@ -16,7 +16,7 @@ print('[DEBUG] hr_analyzer.py started', file=sys.stderr)
 def convert_to_mp4(input_path, output_path):
     cmd = [
         'ffmpeg',
-        '-y',  # overwrite output file if it exists
+        '-y', 
         '-i', input_path,
         '-c:v', 'libx264',
         '-c:a', 'aac',

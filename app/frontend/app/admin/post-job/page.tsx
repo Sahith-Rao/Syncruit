@@ -49,10 +49,6 @@ export default function PostJob() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Debug
-    console.log('user:', user);
-    console.log('payload:', { ...formData, postedBy: user?._id });
-
     try {
       const res = await fetch("http://localhost:5000/api/jobs", {
         method: "POST",

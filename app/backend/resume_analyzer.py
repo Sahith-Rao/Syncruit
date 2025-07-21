@@ -7,8 +7,6 @@ import sys
 import requests
 import io
 
-# Load spaCy NER model
-nlp = spacy.load("en_core_web_sm")
 
 # Accept arguments from command line
 if len(sys.argv) < 3:

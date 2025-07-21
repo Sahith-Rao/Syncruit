@@ -81,8 +81,6 @@ export default function ManageJobs() {
 
   const handleDeleteJob = (jobId: string, jobTitle: string) => {
     toast.success(`Job "${jobTitle}" has been deleted successfully`);
-    // Here you would also add the API call to delete the job
-    // and then filter it from the local state `setJobs(jobs.filter(j => j._id !== jobId))`
   };
 
   const handleEditJob = (jobId: string) => {

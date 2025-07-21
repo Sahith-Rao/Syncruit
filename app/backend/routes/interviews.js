@@ -13,17 +13,14 @@ import fs from 'fs';
 
 const router = express.Router();
 
-// Initialize Google AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Configure multer for video uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/');
@@ -35,7 +32,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  limits: { fileSize: 50 * 1024 * 1024 }, 
   fileFilter: function (req, file, cb) {
     if (file.mimetype.startsWith('video/')) {
       cb(null, true);
@@ -45,7 +42,6 @@ const upload = multer({
   }
 });
 
-// Helper function to upload to Cloudinary
 const uploadToCloudinary = (filePath) => {
   return new Promise((resolve, reject) => {
     cloudinary.uploader.upload(filePath, 
@@ -63,7 +59,6 @@ const uploadToCloudinary = (filePath) => {
   });
 };
 
-// Helper function to clean AI response
 const cleanJsonResponse = (responseText) => {
   let cleanText = responseText.trim();
   cleanText = cleanText.replace(/(json|```|`)/gi, "");

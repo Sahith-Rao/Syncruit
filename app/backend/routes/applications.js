@@ -49,7 +49,7 @@ router.get('/candidate/:candidateId', async (req, res) => {
     }
 
     const applications = await Application.find({ candidate: candidateId })
-      .populate('job') // This will replace the 'job' ObjectId with the full job document
+      .populate('job') 
       .sort({ appliedAt: -1 });
 
     if (!applications) {
@@ -76,37 +76,30 @@ router.post('/shortlist', async (req, res) => {
     }
 
     if (applicationIds.length === 0) {
-      // Shortlist no one: mark all as Not Qualified
       await Application.updateMany(
         { job: jobId },
         { $set: { shortlisted: false, status: 'Not Qualified' } }
       );
-      // Update job status
       await Job.findByIdAndUpdate(jobId, { $set: { status: 'Selection Complete' } }, { new: true });
       return res.json({ message: 'No candidates shortlisted. Selection complete.' });
     }
 
-    // Update applications as shortlisted
     await Application.updateMany(
       { _id: { $in: applicationIds }, job: jobId },
       { $set: { shortlisted: true, status: 'Shortlisted' } }
     );
 
-    // Update non-shortlisted applications to 'Not Qualified'
     await Application.updateMany(
       { job: jobId, _id: { $nin: applicationIds } },
       { $set: { status: 'Not Qualified' } }
     );
 
-    // Update the job status to 'Shortlisted, Interview Pending'
     const updatedJob = await Job.findByIdAndUpdate(jobId, { $set: { status: 'Shortlisted, Interview Pending' } }, { new: true });
     console.log('Updated job after shortlisting:', updatedJob);
 
-    // Fetch candidate emails
     const shortlistedApps = await Application.find({ _id: { $in: applicationIds } }).populate('candidate');
     const emails = shortlistedApps.map(app => app.candidate.email);
 
-    // Send emails (using nodemailer, configure with your SMTP or a test account)
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {

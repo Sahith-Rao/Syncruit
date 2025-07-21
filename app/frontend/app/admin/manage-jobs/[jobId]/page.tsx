@@ -190,7 +190,7 @@ export default function ViewApplications() {
       setIsProfileModalOpen(true);
     } catch (error) {
       console.error(error);
-      // You can add a toast notification here to inform the user
+      
     }
   };
 

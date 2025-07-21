@@ -15,17 +15,14 @@ const __dirname = path.dirname(__filename);
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Initialize Google AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Helper function to upload file to Cloudinary
 function uploadToCloudinary(fileBuffer) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -39,7 +36,6 @@ function uploadToCloudinary(fileBuffer) {
   });
 }
 
-// Helper function to clean AI response for JSON array
 const cleanJsonResponse = (responseText) => {
   let cleanText = responseText.trim();
   cleanText = cleanText.replace(/(json|```|`)/gi, "");
@@ -62,32 +58,24 @@ const cleanJsonResponse = (responseText) => {
   }
 };
 
-// Helper function to clean AI response for a single JSON object
 const cleanJsonObjectResponse = (responseText) => {
   try {
-    // First, try to parse the response directly (in case it's already valid JSON)
     try {
       return JSON.parse(responseText);
     } catch (directParseError) {
-      // If direct parsing fails, proceed with cleaning
       console.log('Direct JSON parsing failed, attempting to clean response');
     }
 
-    // Remove code block markers and other non-JSON text
     let cleanText = responseText.trim();
     cleanText = cleanText.replace(/(```json|```|`)/gi, "");
     
-    // Try to extract JSON object using a more reliable approach
     const jsonMatch = cleanText.match(/\{(?:[^{}]|(\{(?:[^{}]|(\{(?:[^{}]|(\{[^{}]*\}))*\}))*\}))*\}/s);
     if (jsonMatch) {
       cleanText = jsonMatch[0];
     }
-    
-    // Handle escaped characters and newlines in a more robust way
-    // First, temporarily replace escaped quotes to prevent confusion
+ 
     cleanText = cleanText.replace(/\\"/g, "___ESCAPED_QUOTE___");
-    
-    // Replace all newlines within string values with spaces
+ 
     let inString = false;
     let result = '';
     for (let i = 0; i < cleanText.length; i++) {
@@ -104,11 +92,9 @@ const cleanJsonObjectResponse = (responseText) => {
       }
     }
     
-    // Restore escaped quotes
     result = result.replace(/___ESCAPED_QUOTE___/g, '\\"');
     
-    // Additional cleanup for common issues
-    // Remove any trailing commas before closing brackets or braces
+
     result = result.replace(/,\s*([\]}])/g, '$1');
     
     console.log('Cleaned JSON:', result);
@@ -117,8 +103,7 @@ const cleanJsonObjectResponse = (responseText) => {
       return JSON.parse(result);
     } catch (error) {
       console.error('Failed to parse cleaned JSON. Attempting fallback method.');
-      
-      // Fallback: Try to extract just the ratings and feedback fields
+
       const ratingsMatch = responseText.match(/"ratings"\s*:\s*(\d+)/);
       const feedbackMatch = responseText.match(/"feedback"\s*:\s*"([^"]*)"/);
       
@@ -129,8 +114,7 @@ const cleanJsonObjectResponse = (responseText) => {
           feedback: feedbackMatch[1]
         };
       }
-      
-      // If all else fails, create a default response
+
       console.error('All parsing methods failed. Using default response.');
       return {
         ratings: 5,
@@ -146,7 +130,6 @@ const cleanJsonObjectResponse = (responseText) => {
   }
 };
 
-// Generate AI questions for mock interview
 const generateMockQuestions = async (mockJobData) => {
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
   
@@ -176,7 +159,6 @@ const generateMockQuestions = async (mockJobData) => {
   return cleanJsonResponse(response.text());
 };
 
-// Evaluate answer using Gemini AI
 const evaluateAnswer = async (question, userAnswer, correctAnswer) => {
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
   
@@ -206,7 +188,6 @@ const evaluateAnswer = async (question, userAnswer, correctAnswer) => {
   return cleanJsonObjectResponse(response.text());
 };
 
-// POST /api/mock-interviews/generate-questions
 router.post('/generate-questions', async (req, res) => {
   try {
     const { title, techStack, experience } = req.body;
@@ -215,7 +196,6 @@ router.post('/generate-questions', async (req, res) => {
       return res.status(400).json({ error: 'Tech stack is required' });
     }
 
-    // Generate questions using AI
     const questions = await generateMockQuestions({
       title: title || 'Software Developer',
       techStack: techStack.trim(),
@@ -232,7 +212,6 @@ router.post('/generate-questions', async (req, res) => {
   }
 });
 
-// Model for storing mock interview results
 import mongoose from 'mongoose';
 
 const MockInterviewResultSchema = new mongoose.Schema({
@@ -284,7 +263,6 @@ const MockInterviewResultSchema = new mongoose.Schema({
 
 const MockInterviewResult = mongoose.model('MockInterviewResult', MockInterviewResultSchema);
 
-// POST /api/mock-interviews/analyze
 router.post('/analyze', upload.single('video'), async (req, res) => {
   try {
     const { questions, answers } = req.body;
@@ -308,7 +286,6 @@ router.post('/analyze', upload.single('video'), async (req, res) => {
 
     console.log('Received file:', req.file.originalname);
 
-    // Upload video to Cloudinary
     let cloudinaryResult;
     try {
       cloudinaryResult = await uploadToCloudinary(req.file.buffer);
@@ -318,7 +295,6 @@ router.post('/analyze', upload.single('video'), async (req, res) => {
       return res.status(500).json({ error: 'Cloudinary upload failed', details: cloudErr });
     }
 
-    // Process with hr_analyzer.py
     const scriptPath = path.resolve(process.cwd(), 'hr_analyzer.py');
     console.log('Calling hr_analyzer.py with:', scriptPath, cloudinaryResult.secure_url);
     
@@ -355,7 +331,6 @@ router.post('/analyze', upload.single('video'), async (req, res) => {
       });
     });
 
-    // Process with Gemini AI
     const geminiResults = [];
     for (let i = 0; i < parsedQuestions.length; i++) {
       if (i < parsedAnswers.length) {
@@ -373,31 +348,20 @@ router.post('/analyze', upload.single('video'), async (req, res) => {
       }
     }
 
-    // Calculate overall Gemini score
     const totalGeminiScore = geminiResults.reduce((sum, result) => sum + (result.ratings || 0), 0);
     const averageGeminiScore = geminiResults.length > 0 ? totalGeminiScore / geminiResults.length : 0;
 
-    // Extract confidence and speech rate from HR analysis
     const confidence = hrAnalysis.detailed_metrics?.confidence || 0;
     const speechRate = hrAnalysis.detailed_metrics?.speech_rate || 0;
 
-    // Calculate weighted overall score on a scale of 0-100
-    // Content analysis (Gemini): 60% weightage
-    // Confidence from delivery analysis (HR): 20% weightage
-    // Speech rate from delivery analysis (HR): 20% weightage
-    
-    // Normalize all scores to 0-100 scale first
-    const normalizedGeminiScore = (averageGeminiScore / 10) * 100; // Convert 0-10 to 0-100
-    
-    // Apply weightage
-    const contentScore = normalizedGeminiScore * 0.6; // 60% of content score
-    const confidenceScore = confidence * 0.2; // 20% of confidence score
-    const speechRateScore = speechRate * 0.2; // 20% of speech rate score
-    
-    // Combine scores and ensure it's within 0-100 range
+    const normalizedGeminiScore = (averageGeminiScore / 10) * 100; 
+
+    const contentScore = normalizedGeminiScore * 0.6; 
+    const confidenceScore = confidence * 0.2; 
+    const speechRateScore = speechRate * 0.2; 
+ 
     const weightedOverallScore = Math.min(100, Math.max(0, contentScore + confidenceScore + speechRateScore));
 
-    // Combine results
     const combinedResults = {
       hrAnalysis: hrAnalysis,
       geminiAnalysis: {

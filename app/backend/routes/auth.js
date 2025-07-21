@@ -18,7 +18,6 @@ cloudinary.config({
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Helper to promisify cloudinary upload_stream
 function uploadToCloudinary(fileBuffer) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(

@@ -38,10 +38,10 @@ interface InterviewSession {
   completedDate: string;
   score: number;
   feedback: string;
-  question?: string; // Add question property
-  deliveryFeedback?: string[]; // Add deliveryFeedback property
-  contentScore?: number; // Add contentScore property
-  deliveryScore?: number; // Add deliveryScore property
+  question?: string; 
+  deliveryFeedback?: string[]; 
+  contentScore?: number; 
+  deliveryScore?: number; 
   status: 'Completed' | 'In Progress' | 'Not Started';
 }
 
