@@ -322,8 +322,16 @@ router.post('/analyze', upload.single('video'), async (req, res) => {
         }
         
         try {
-          const analysis = JSON.parse(output);
-          resolve(analysis);
+          // Extract JSON object from the output
+          const jsonMatch = output.match(/(\{.*\})/s);
+          if (jsonMatch && jsonMatch[0]) {
+            const jsonStr = jsonMatch[0];
+            const analysis = JSON.parse(jsonStr);
+            resolve(analysis);
+          } else {
+            console.error('No valid JSON found in output:', output);
+            reject(new Error('No valid JSON found in output'));
+          }
         } catch (err) {
           console.error('Failed to parse analysis result:', output);
           reject(new Error('Failed to parse analysis result'));
