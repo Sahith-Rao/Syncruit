@@ -20,6 +20,8 @@ export default function AdminRegister() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -31,7 +33,7 @@ export default function AdminRegister() {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register/admin", {
+      const res = await fetch(`${API_URL}/api/auth/register/admin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

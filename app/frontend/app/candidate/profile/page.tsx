@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner';
 
 export default function MyProfile() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const [candidateData, setCandidateData] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,7 +62,7 @@ export default function MyProfile() {
           return;
         }
         
-        const response = await fetch(`http://localhost:5000/api/candidates/${userId}`, {
+        const response = await fetch(`${API_URL}/api/candidates/${userId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -121,7 +122,7 @@ export default function MyProfile() {
         return;
       }
       
-      const response = await fetch(`http://localhost:5000/api/candidates/${userId}`, {
+      const response = await fetch(`${API_URL}/api/candidates/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

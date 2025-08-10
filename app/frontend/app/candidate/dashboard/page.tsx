@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { getCandidateStats } from '../applications/page';
+import { getCandidateStats } from '@/lib/utils';
 
 interface Job {
   _id: string;
@@ -97,7 +97,7 @@ export default function CandidateDashboard() {
   }, [router]);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/jobs/candidate')
+    fetch(`${API_URL}/api/jobs/candidate`)
       .then(res => res.json())
       .then(data => setJobs(data))
       .catch(err => console.error(err));
@@ -140,7 +140,7 @@ export default function CandidateDashboard() {
     formData.append('candidateId', candidateData._id);
     formData.append('jobId', selectedJob._id);
     try {
-      const res = await fetch('http://localhost:5000/api/analyze/resume', {
+      const res = await fetch(`${API_URL}/api/analyze/resume`, {
         method: 'POST',
         body: formData,
       });

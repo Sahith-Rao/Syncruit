@@ -57,8 +57,10 @@ export default function CandidateRegister() {
     form.append('password', formData.password);
     form.append('resume', resume);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register/candidate', {
+      const res = await fetch(`${API_URL}/api/auth/register/candidate`, {
         method: 'POST',
         body: form,
       });

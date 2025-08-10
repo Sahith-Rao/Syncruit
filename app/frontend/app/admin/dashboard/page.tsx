@@ -37,18 +37,20 @@ export default function AdminDashboard() {
     setAdminData(JSON.parse(storedAdminData));
   }, [router]);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
   useEffect(() => {
     // Fetch jobs for this admin
     const storedAdminData = localStorage.getItem('adminData');
     const adminId = storedAdminData ? JSON.parse(storedAdminData)._id : null;
     if (!adminId) return;
-    fetch(`http://localhost:5000/api/jobs?adminId=${adminId}`)
+    fetch(`${API_URL}/api/jobs?adminId=${adminId}`)
       .then(res => res.json())
       .then(data => {
         setJobs(data);
       });
     // Fetch pending applications count from backend
-    fetch(`http://localhost:5000/api/applications/admin/${adminId}/pending`)
+    fetch(`${API_URL}/api/applications/admin/${adminId}/pending`)
       .then(res => res.json())
       .then(data => {
         setPendingApplications(data.pending || 0);
