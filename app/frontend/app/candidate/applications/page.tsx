@@ -28,7 +28,7 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { getCandidateStats, Application } from '@/lib/utils';
+import { getCandidateStats, Application } from '@/shared/utils';
 
 export default function MyApplications() {
   const [candidateData, setCandidateData] = useState<any>(null);

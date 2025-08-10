@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { getCandidateStats } from '@/lib/utils';
+import { getCandidateStats } from '@/shared/utils';
 
 interface Job {
   _id: string;
