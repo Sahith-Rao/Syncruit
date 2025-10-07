@@ -50,7 +50,7 @@ Syncruit is an AI-powered recruitment platform that streamlines the hiring proce
 
 ### Resume Analysis Process
 
-Syncruit uses sophisticated Natural Language Processing (NLP) techniques to analyze resumes and match them to job requirements:
+Syncruit uses sophisticated Natural Language Processing (NLP) techniques to analyze resumes and match them to job requirements: 
 
 1. **Text Extraction**: 
    - Uses PyPDF2 to extract text content from PDF resumes
